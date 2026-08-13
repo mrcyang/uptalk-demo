@@ -998,7 +998,7 @@ function openCase(id,t,pane){
   if(!S.stack.includes('scr-detail')){showTab('scr-analyze');pushScr('scr-detail');}
   if(S.vid!==id)setCase(id);
   aTab(pane||'overview');
-  if(t!=null)seekFlash(t);
+  if(t)seekFlash(t);else if(t===0)seek(0);
 }
 
 /* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
@@ -1048,12 +1048,25 @@ function drawViz(){
 }
 function curSub(){return SUBS.findIndex(u=>S.t>=u.s&&S.t<u.e);}
 function seek(t){S.t=Math.max(0,Math.min(DUR,t));if(mediaOn())AUD.currentTime=S.t;syncUI(true);}
+/* 只滚动分析页内容区（#detailBody），绝不带动外层容器 —— 修复二级页面上移 */
+function scrollBodyTo(el,center,smooth){
+  const sc=el.closest('.body');if(!sc)return;
+  const er=el.getBoundingClientRect(),sr=sc.getBoundingClientRect();
+  let target;
+  if(center){target=sc.scrollTop+(er.top-sr.top)-(sc.clientHeight-er.height)/2;}
+  else{
+    const above=er.top<sr.top+8,below=er.bottom>sr.bottom-8;
+    if(!above&&!below)return;
+    target=above?sc.scrollTop+(er.top-sr.top)-10:sc.scrollTop+(er.bottom-sr.bottom)+10;
+  }
+  sc.scrollTo({top:Math.max(0,target),behavior:smooth?'smooth':'auto'});
+}
 function seekFlash(t){
   seek(t);
   const i=curSub();if(i<0)return;
   $$('.subList').forEach(list=>{
     const el=list.querySelectorAll('.sub')[i];if(!el)return;
-    if(list.offsetParent)el.scrollIntoView({block:'center'});
+    if(list.offsetParent)scrollBodyTo(el,true,false);
     el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
   });
 }
@@ -1091,7 +1104,7 @@ function syncUI(force){
     $$('.subList').forEach(list=>{
       const subs=list.querySelectorAll('.sub');
       subs.forEach((el,k)=>el.classList.toggle('now',k===i));
-      if(S.playing&&list.offsetParent&&subs[i])subs[i].scrollIntoView({block:'nearest',behavior:'smooth'});
+      if(S.playing&&list.offsetParent&&subs[i])scrollBodyTo(subs[i],false,true);
     });
   }
 }
@@ -1158,7 +1171,7 @@ function buildApt(){
 function jumpEv(k){
   seekFlash(DET[k].s);
   const el=$('#ev'+k);if(!el)return;
-  el.scrollIntoView({block:'center',behavior:'smooth'});
+  scrollBodyTo(el,true,true);
   $$('.evCard').forEach(c=>c.classList.remove('hi'));el.classList.add('hi');
   setTimeout(()=>el.classList.remove('hi'),1600);
 }
