@@ -313,7 +313,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
           <div class="gfoot">
             <span class="pill" style="background:rgba(255,255,255,.16);color:#fff">下节课 · 8 月 15 日</span>
             <span style="flex:1"></span>
-            <button onclick="openAnalysis(58,'apt')">查看相关证据</button>
+            <button onclick="openCase('fx',58,'apt')">查看相关证据</button>
           </div>
         </div>
 
@@ -328,7 +328,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
 
         <div class="secLabel">最近分析</div>
         <div class="card" style="padding:4px 14px">
-          <button class="homeItem" onclick="openAnalysis(0,'overview')">
+          <button class="homeItem" onclick="openCase('tiny',0,'overview')">
+            <div class="thumb" style="background:var(--g1t)"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="#2A78D6" stroke-width="1.8" stroke-linecap="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg></div>
+            <div class="grow"><div class="t1">Do tiny things have weight?</div><div class="t2">今天 · 05:38 · 真实音频转写 · 7 个 APT 实例</div></div>
+            <span class="pill ok">已完成</span>
+          </button>
+          <button class="homeItem" onclick="openCase('fx',0,'overview')">
             <div class="thumb" style="background:var(--brand-tint)"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg></div>
             <div class="grow"><div class="t1">分数的初步认识（节选）</div><div class="t2">昨天 · 05:00 · 检测到 9 个 APT 实例</div></div>
             <span class="pill ok">已完成</span>
@@ -383,7 +388,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
       </div>
       <div class="body">
         <div class="card" style="padding:13px 14px 4px">
-          <button class="homeItem" onclick="openAnalysis(0,'overview')">
+          <button class="homeItem" onclick="openCase('tiny',0,'overview')">
+            <div class="thumb" style="background:var(--g1t);font-size:17px">🎧</div>
+            <div class="grow"><div class="t1">Do tiny things have weight?</div><div class="t2">小学科学 · 英语课堂 · 05:38 · 今天上传（音频）</div></div>
+            <span class="pill ok">已完成</span>
+          </button>
+          <button class="homeItem" onclick="openCase('fx',0,'overview')">
             <div class="thumb" style="background:var(--brand-tint);font-size:17px">🎬</div>
             <div class="grow"><div class="t1">分数的初步认识（节选）</div><div class="t2">三年级 · 数学 · 05:00 · 昨天上传</div></div>
             <span class="pill ok">已完成</span>
@@ -491,17 +501,17 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
       <div class="hd line" style="padding:10px 14px 8px">
         <button class="backBtn" onclick="pause();popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button>
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">分数的初步认识（节选）</div>
-          <div style="font-size:10.5px;color:var(--ink3);margin-top:1px">三年级 · 数学 · 05:00 · <span style="color:var(--ok)">仅自己可见</span></div>
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="dTitle">分数的初步认识（节选）</div>
+          <div style="font-size:10.5px;color:var(--ink3);margin-top:1px" id="dMeta"></div>
         </div>
         <span class="demoTag">DEMO</span>
       </div>
 
       <div class="player">
         <div class="stage">
-          <div class="wm">UPTALK</div><div class="demo">模拟课堂画面</div>
+          <div class="wm">UPTALK</div><div class="demo" id="stageBadge">模拟课堂画面</div>
           <div class="figs" id="figs">
-            <div class="fig" data-f="t"><div class="fc">👩‍🏫</div><div class="fn">王老师</div></div>
+            <div class="fig" data-f="t"><div class="fc">👩‍🏫</div><div class="fn" id="figTName">王老师</div></div>
             <div class="fig" data-f="s"><div class="fc">🧒</div><div class="fn" id="figStuName">学生</div></div>
             <div class="fig" data-f="all"><div class="fc">👥</div><div class="fn">全班</div></div>
           </div>
@@ -510,7 +520,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
         <div class="ctrl">
           <button class="playBtn" id="playBtn" onclick="playPause()" aria-label="播放/暂停"><svg viewBox="0 0 24 24" id="playIco"><path d="M8 5.5v13l11-6.5z"/></svg></button>
           <div class="barWrap" id="barWrap"><div class="bar"><div class="fill" id="barFill"></div><span id="barMks"></span></div></div>
-          <div class="tm"><span id="tmNow" class="num">00:00</span> / 05:00</div>
+          <div class="tm"><span id="tmNow" class="num">00:00</span> / <span id="tmDur" class="num">05:00</span></div>
         </div>
       </div>
 
@@ -527,9 +537,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
 
         <!-- 概览 -->
         <div class="aPane on" data-p="overview">
-          <div class="card" style="display:flex;gap:8px;align-items:center;background:var(--ok-tint);box-shadow:none;padding:10px 13px">
-            <span style="font-size:14px">✓</span><span style="font-size:12px;color:var(--ok);line-height:1.5">音频清晰，教师/学生角色识别置信度高；识别结果可在字幕与 APT 卡片中纠正。</span>
-          </div>
+          <div id="qualityBox"></div>
           <div class="statGrid" id="statGrid"></div>
           <div class="card">
             <div style="font-size:13.5px;font-weight:700">师生话语占比</div>
@@ -537,12 +545,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
             <div class="legend"><b style="--lc:var(--teach)">教师</b><b style="--lc:var(--stud)">学生</b><b style="--lc:#C3CAD3">其他/静默</b></div>
             <p class="note">口径 v1：按字幕时段汇总；重叠语音计入先发言者。</p>
           </div>
-          <div class="card">
-            <div style="font-size:13.5px;font-weight:700">值得注意的地方</div>
-            <div class="obs"><span class="ob-k">观察 1 · 有证据</span><br>两次<b>追问推理</b>都出现在学生给出答案之后，且都得到了完整说理 <span class="tChip" onclick="seekFlash(58)">00:58</span><span class="tChip" onclick="seekFlash(252)">04:12</span></div>
-            <div class="obs"><span class="ob-k">观察 2 · 有证据</span><br>本节选覆盖<b>全部 4 类</b> APT 目标；合作思考类连续出现 3 次，形成「同意 → 挑战 → 解释他人」的推进链 <span class="tChip" onclick="seekFlash(128)">02:08</span><span class="tChip" onclick="seekFlash(152)">02:32</span><span class="tChip" onclick="seekFlash(178)">02:58</span></div>
-            <p class="note">Uptalk 不输出综合评分——每个结论都可回到课堂原话核验。</p>
-          </div>
+          <div id="obsBox"></div>
         </div>
 
         <!-- APT -->
@@ -556,9 +559,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
             <div style="font-size:13.5px;font-weight:700">出现时间轴 <span style="font-weight:500;color:var(--ink3);font-size:11px">点标记可跳转</span></div>
             <div class="tl" id="aptTl"></div>
           </div>
-          <div class="card" style="background:var(--brand-tint);box-shadow:none">
-            <div style="font-size:12.5px;line-height:1.65;color:var(--brand-deep)"><b>目标对照</b> · 本课实践目标「追问推理」出现 <b>2 次</b>，两次学生均给出依据 ✓　建议下一步关注：追问后再邀请其他学生回应（补充 / 同意不同意）。</div>
-          </div>
+          <div id="goalCmp"></div>
           <div class="secLabel">证据列表（<span class="num" id="evCount"></span> 条 · 可确认或改正）</div>
           <div id="evList"></div>
         </div>
@@ -575,7 +576,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
           <div class="card" style="padding:10px 14px">
             <div class="swRow"><span style="flex:1">隐藏课堂社交词（嗯、很好、大家…）</span><button class="sw" id="socSw" onclick="toggleSoc()" aria-label="隐藏课堂社交词"></button></div>
           </div>
-          <p class="note">字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：按「该角色有效词次」计，分词与停用词表 v1。</p>
+          <p class="note" id="cloudNote"></p>
         </div>
 
         <!-- 结构 -->
@@ -586,13 +587,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
             <div class="legend"><b style="--lc:var(--teach)">教师</b><b style="--lc:var(--stud)">学生</b></div>
           </div>
           <div class="statGrid" id="structGrid"></div>
-          <div class="card">
-            <div style="font-size:13.5px;font-weight:700">互动序列</div>
-            <div class="seqRow"><span>教师 → 学生 回应</span><b class="num">12 次</b></div>
-            <div class="seqRow"><span>学生 → 学生 接续（经教师引导）</span><b class="num">3 次</b></div>
-            <div class="seqRow"><span>提问后平均等待</span><b class="num">2.8 秒</b></div>
-            <p class="note">口径 v1：轮次 = 说话角色切换；&lt;1 秒的语气词不计；等待时间 = 问句结束到下一位发言开始。指标口径冻结后不随版本静默变化。</p>
-          </div>
+          <div id="seqBox"></div>
         </div>
 
         <!-- AI -->
@@ -614,20 +609,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
             <span id="refState" class="pill mut">仅自己可见</span>
             <span style="font-size:11.5px;color:var(--ink2);flex:1;line-height:1.5">反思默认私有；分享给工作区是显式操作，可随时撤销。</span>
           </div>
-          <div class="refQ"><div class="rq-t">1 · 我注意到什么？</div><div class="rq-h">引用具体片段，而不是整体印象</div>
-            <div class="evChips"><span class="evChip" onclick="seekFlash(152)"><i style="background:var(--g2)"></i>02:32 挑战</span><span class="evChip" onclick="seekFlash(178)"><i style="background:var(--g4)"></i>02:58 引导解释他人</span><button class="evChip" style="color:var(--brand-deep)" onclick="toast('从字幕 / APT 证据 / 图表中选择片段加入（演示略）')">＋ 添加证据</button></div>
-            <textarea rows="3">我挑战「两块不一样大还能叫二分之一吗」之后，没有直接讲结论，而是让学生解释小宇的话，学生说出了「不平均就没有意义」。</textarea></div>
-          <div class="refQ"><div class="rq-t">2 · 我怎样理解它？</div><div class="rq-h">补充模型看不到的课堂背景</div>
-            <textarea rows="2">这个班以前习惯等我给标准答案，这次把解释的机会交回给学生，效果比预想好。</textarea></div>
-          <div class="refQ"><div class="rq-t">3 · 下次我准备尝试什么？</div><div class="rq-h">选一个策略，写出具体话术</div>
-            <textarea rows="2" placeholder="例：在学生说出理由后，追加一句「谁可以在他的想法上再补充？」">在追问之后加一步「补充」：谁可以在他的想法上再补充？</textarea></div>
-          <div class="refQ"><div class="rq-t">4 · 我如何知道有变化？</div><div class="rq-h">写可观察的迹象</div>
-            <textarea rows="2" placeholder="例：至少出现一次学生主动回应同伴观点">至少出现 1 次学生不经我点名、主动接着同伴的观点往下说。</textarea></div>
+          <div id="refBody"></div>
           <div style="display:flex;gap:9px;margin-top:16px">
             <button class="btn ghost" style="flex:1" onclick="toast('草稿已保存（仅自己可见）')">保存草稿</button>
             <button class="btn" style="flex:1" onclick="openShare()">分享到工作区</button>
           </div>
-          <button class="btn line" style="margin-top:9px" onclick="addGoal('补充',4,this)">由此创建下节课目标：补充</button>
+          <button class="btn line" style="margin-top:9px" id="refGoalBtn"></button>
         </div>
       </div>
     </section>
@@ -662,11 +649,11 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
             <div style="font-size:11px;color:var(--ink3);margin-top:3px">3 条回复 · 关联「分数的初步认识」</div>
             <div style="margin-top:6px" id="cmtList">
               <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:var(--brand)">王</div><span class="cn">王老师（我）</span><span class="ct">昨天 21:40</span></div>
-                <div class="cb">我在 <span class="tChip" onclick="openAnalysis(152,'struct')">02:32</span> 抛出挑战后全班齐answered得很快，感觉他们没真正想。等待时间该怎么把握？</div></div>
+                <div class="cb">我在 <span class="tChip" onclick="openCase('fx',152,'struct')">02:32</span> 抛出挑战后全班齐声回答得很快，感觉他们没真正想。等待时间该怎么把握？</div></div>
               <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:#4A3AA7">李</div><span class="cn">李老师</span><span class="ct">25 分钟前</span></div>
                 <div class="cb">齐答通常说明问题封闭。可以把「还能叫二分之一吗」改成「谁能举一个不能叫二分之一的例子」，再等 3–5 秒点名。</div></div>
               <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:#B45309">陈</div><span class="cn">陈老师</span><span class="ct">10 分钟前</span></div>
-                <div class="cb">同意。另外你 <span class="tChip" onclick="openAnalysis(178,'apt')">02:58</span> 让学生解释小宇的话，这一步接得很好，值得保持。</div></div>
+                <div class="cb">同意。另外你 <span class="tChip" onclick="openCase('fx',178,'apt')">02:58</span> 让学生解释小宇的话，这一步接得很好，值得保持。</div></div>
             </div>
             <div class="chatIn" style="position:static;background:none;padding-top:6px">
               <input id="cmtIn" type="text" placeholder="回复讨论…" onkeydown="if(event.key==='Enter')sendCmt()">
@@ -755,7 +742,7 @@ const STRAT_DETAIL = {
 };
 
 /* 字幕：s起 e止 w角色(t师/s生/all) n名 x文本 a=APT c=置信度 */
-const SUBS = [
+const FX_SUBS = [
  {s:0,e:14,w:'t',n:'王老师',x:'同学们，中秋节快到了，老师带来一块月饼。要把它分给两位同学，怎么分才公平？'},
  {s:14,e:22,w:'s',n:'小宇',x:'从中间切开，一人一半，这样才公平。'},
  {s:22,e:34,w:'t',n:'王老师',x:'让我看看是否理解了你的意思——你是说要平均分成两块，每人拿到的一样大，对吗？',a:'revoice',c:92},
@@ -783,33 +770,169 @@ const SUBS = [
  {s:278,e:290,w:'t',n:'王老师',x:'所以不管涂哪一份，都是这张纸的四分之一。大家观察到了什么？'},
  {s:290,e:300,w:'s',n:'小雨',x:'4 份里的每 1 份都一样大，都是四分之一。'},
 ];
-const DUR = 300;
+
+/* 真实案例：Do tiny things have weight?（英语科学课音频 · whisper-small 本地转写 · 角色由内容推断） */
+const TINY_SUBS = [
+ {s:0.0,e:3.9,w:'t',n:'教师',x:'What do you think? Do tiny things have weight, Christina?'},
+ {s:3.9,e:13.7,w:'s',n:'Christina',x:'I do agree with Bailey because a lot of things twist way lighter, but like insects or like'},
+ {s:13.7,e:20.4,w:'s',n:'Christina',x:'even little kids younger than us think that it\'s heavier. And yeah, that\'s what I wanted to say.'},
+ {s:20.4,e:22.5,w:'s',n:'学生',x:'Right? I do agree with that.'},
+ {s:22.5,e:23.1,w:'t',n:'教师',x:'Tegan.'},
+ {s:23.1,e:29.9,w:'s',n:'Tegan',x:'Um, I\'m gonna refer back to the question. I\'m probably gonna say, well,'},
+ {s:30.6,e:37.2,w:'s',n:'Tegan',x:'it sort of depends. Like when we slice the little tiny to tiny pieces of clay,'},
+ {s:37.9,e:49.8,w:'s',n:'Tegan',x:'I would probably say no because it like fits in with our hand and so it\'s just like feeling air'},
+ {s:49.8,e:54.3,w:'s',n:'Tegan',x:'because you could go like this and it wouldn\'t fall off. But if we tried to do that with'},
+ {s:54.4,e:67.4,w:'s',n:'Tegan',x:'copper cube, it would be like a workout. But and so I agree with everybody what they\'re saying,'},
+ {s:67.4,e:76.8,w:'s',n:'Tegan',x:'but I don\'t think that tiny things have weight because copper cube has weight, lots of weight,'},
+ {s:77.7,e:80.8,w:'s',n:'Tegan',x:'and um, yeah.'},
+ {s:82.7,e:92.7,w:'s',n:'Christina',x:'Christina, when I\'m thinking back to the cubes, the pine cube is light and it has weight, so'},
+ {s:94.1,e:99.4,w:'s',n:'Christina',x:'I just want to say that to Tegan because maybe she might change her mind, but maybe she might not.'},
+ {s:99.4,e:103.5,w:'t',n:'教师',x:'All right, so just because something\'s lighter doesn\'t mean it doesn\'t have weight?',a:'revoice',c:90},
+ {s:103.5,e:110.2,w:'s',n:'学生',x:'Yeah. Because adding on to what Christina said, a feather is very light and'},
+ {s:111.5,e:114.6,w:'s',n:'学生',x:'but it still has weight, even though it feels like nothing.'},
+ {s:114.6,e:116.3,w:'t',n:'教师',x:'Okay, can do it.'},
+ {s:117.6,e:124.5,w:'s',n:'学生',x:'I think that very tiny things have weight because when you\'re like tinier than that thing,'},
+ {s:124.5,e:135.1,w:'s',n:'学生',x:'you could like feel like the thing like the clay you just chopped, you could be tinier'},
+ {s:135.2,e:141.4,w:'s',n:'学生',x:'than that, and then you chop another one and you could be tinier than that and lift'},
+ {s:142.8,e:145.2,w:'s',n:'学生',x:'and keep trying to lift if it has weight.'},
+ {s:146.5,e:152.7,w:'t',n:'教师',x:'So you\'re tinier than that piece of clay that you\'re trying to lift it, or something\'s tinier trying to lift it? Is that what you\'re thinking?',a:'revoice',c:93},
+ {s:152.7,e:153.1,w:'s',n:'学生',x:'No.'},
+ {s:153.1,e:156.0,w:'t',n:'教师',x:'You are?'},
+ {s:156.0,e:156.6,w:'s',n:'学生',x:'Yeah.'},
+ {s:156.6,e:157.1,w:'t',n:'教师',x:'Yeah?'},
+ {s:157.1,e:157.2,w:'s',n:'学生',x:'Yeah.'},
+ {s:157.2,e:158.5,w:'t',n:'教师',x:'Okay, Zydrick, what do you think?'},
+ {s:158.5,e:160.5,w:'s',n:'Zydrick',x:'Well, I don\'t know what the mirror also said.'},
+ {s:161.5,e:166.7,w:'s',n:'Zydrick',x:'Well, like Andrew, when it was like a tiny thing, when they drop it, he said he'},
+ {s:166.7,e:172.5,w:'s',n:'Zydrick',x:'felt a weight when he closed his eyes, so I think very tiny things do have weight.'},
+ {s:173.9,e:180.7,w:'t',n:'教师',x:'Why? Why? When you saw that happen and you saw Andrew open your eyes, why did that convince you that that tiny little thing had weight?',a:'press',c:95},
+ {s:180.7,e:187.6,w:'s',n:'Zydrick',x:'Well, we don\'t know when the little piece of clay is going to drop, so when he opened his,'},
+ {s:187.6,e:195.8,w:'s',n:'Zydrick',x:'like when his eyes just opened, like he knows when the little tiny clay will drop,'},
+ {s:195.9,e:198.6,w:'s',n:'Zydrick',x:'so he don\'t, can he can\'t really feel it?'},
+ {s:199.3,e:202.0,w:'t',n:'教师',x:'So his reaction, you\'re seeing him open his eyes?',a:'revoice',c:84},
+ {s:202.0,e:203.1,w:'t',n:'教师',x:'All right, Ema, what do you think?'},
+ {s:203.8,e:208.3,w:'s',n:'Ema',x:'Well, I don\'t want to mirror your eyes. Very, very tiny things do have weight,'},
+ {s:208.3,e:213.9,w:'s',n:'Ema',x:'because they\'re not like just like air, they\'re like a real thing, so they don\'t have that'},
+ {s:213.9,e:218.9,w:'s',n:'Ema',x:'much weight, but they have like a little weight, just like a little, because they\'re a thing.'},
+ {s:218.9,e:221.6,w:'t',n:'教师',x:'You\'re comparing to air. Does the air have weight?',a:'challenge',c:82},
+ {s:222.5,e:228.8,w:'s',n:'Ema',x:'Not exactly. I don\'t, yeah, air doesn\'t have weight, but very tiny things aren\'t like that,'},
+ {s:228.8,e:235.1,w:'s',n:'Ema',x:'because air doesn\'t, air doesn\'t have any weight, so very tiny things do have weight.'},
+ {s:235.1,e:237.6,w:'t',n:'教师',x:'All right, so let\'s see. A lot of people that want to contribute here.'},
+ {s:237.6,e:239.9,w:'t',n:'教师',x:'Sheba, what are you thinking right now? What are you thinking?'},
+ {s:240.4,e:248.2,w:'s',n:'Sheba',x:'If we pick up tiny things, we can\'t really like feel it, because we\'re bigger, and if like'},
+ {s:249.2,e:255.7,w:'s',n:'Sheba',x:'someone else who\'s smaller picks up the tiny thing, they\'re gonna like feel it, because'},
+ {s:257.0,e:259.4,w:'s',n:'Sheba',x:'they\'re smaller, and it may be bigger for them.'},
+ {s:261.1,e:268.9,w:'s',n:'学生',x:'I agree that tiny things have weight, because even if it\'s really, really small, it still has'},
+ {s:268.9,e:273.6,w:'s',n:'学生',x:'some weight and nothing, because like even big things have very little weight,'},
+ {s:274.7,e:279.3,w:'s',n:'学生',x:'so just because it doesn\'t feel like it has weight doesn\'t mean it doesn\'t.'},
+ {s:280.3,e:285.7,w:'t',n:'教师',x:'I want to leave you with one thought experiment, one idea to think about.',a:'challenge',c:87},
+ {s:286.4,e:294.7,w:'t',n:'教师',x:'I have a pencil eraser in my hand. If I gave this to you, would you feel its weight, yes or no?'},
+ {s:296.5,e:300.5,w:'t',n:'教师',x:'A pencil eraser, pencil eraser. Do you feel the weight? Yes.'},
+ {s:300.5,e:304.4,w:'t',n:'教师',x:'Yes, all right. So you could feel the weight of this pencil eraser.'},
+ {s:305.2,e:310.6,w:'t',n:'教师',x:'I could potentially rub this eraser on my paper until it was all gone,'},
+ {s:311.2,e:316.8,w:'t',n:'教师',x:'and it was nothing but shavings. Would you agree? Yes.'},
+ {s:316.8,e:320.5,w:'t',n:'教师',x:'We\'ve talked a little bit about, do these shavings have weight or not?'},
+ {s:321.2,e:326.1,w:'t',n:'教师',x:'We\'re kind of split 50-50, all right? Here\'s what I want you to leave me thinking about.'},
+ {s:326.1,e:338.1,w:'t',n:'教师',x:'If I could somehow get these pieces all back together, back into the eraser that I started with, would the weight be the same? You\'re going to leave with that thought, and we\'ll talk about it.',a:'challenge',c:85},
+];
 
 /* 词云：w词 f频次 c类别(c内容 a策略词 m思维 soc社交) */
-const CLOUD = {
+const FX_CLOUD = {
  t:[{w:'平均分',f:9,c:'c'},{w:'份',f:8,c:'c'},{w:'二分之一',f:7,c:'c'},{w:'为什么',f:6,c:'a'},{w:'月饼',f:5,c:'c'},{w:'四分之一',f:5,c:'c'},{w:'大家',f:5,c:'soc'},{w:'想法',f:4,c:'m'},{w:'同意',f:4,c:'a'},{w:'一半',f:4,c:'c'},{w:'很好',f:4,c:'soc'},{w:'依据',f:3,c:'a'},{w:'补充',f:3,c:'a'},{w:'解释',f:3,c:'a'},{w:'例子',f:3,c:'a'},{w:'涂',f:3,c:'c'},{w:'同学们',f:3,c:'soc'},{w:'观察',f:2,c:'m'},{w:'公平',f:2,c:'c'},{w:'表示',f:2,c:'m'},{w:'练习纸',f:2,c:'c'},{w:'拿出',f:2,c:'soc'}],
  s:[{w:'份',f:7,c:'c'},{w:'平均分',f:6,c:'c'},{w:'二分之一',f:5,c:'c'},{w:'一样大',f:4,c:'c'},{w:'四分之一',f:4,c:'c'},{w:'月饼',f:3,c:'c'},{w:'一份',f:3,c:'c'},{w:'因为',f:5,c:'m'},{w:'公平',f:3,c:'c'},{w:'纸',f:3,c:'c'},{w:'对折',f:2,c:'c'},{w:'剪开',f:2,c:'c'},{w:'同意',f:2,c:'a'},{w:'意思',f:2,c:'m'},{w:'意义',f:1,c:'m'},{w:'老师',f:2,c:'soc'}],
 };
 const CCOL = {c:'var(--g1)',a:'var(--g2)',m:'var(--g3)',soc:'var(--soc)'};
 const CNAME = {c:'内容主题',a:'APT 策略词',m:'思维认知',soc:'课堂社交'};
 
-/* AI 脚本应答 */
-const AI_SUGG = ['我的追问效果如何？','哪个环节学生参与最充分？','我的等待时间够吗？'];
-function aiAnswer(q){
-  if(/追问|press|推理/.test(q)) return {t:`[[d]]本节选检测到 2 次追问推理：@58 「你为什么认为是二分之一？」，小雨给出了完整的份数解释；@252 「为什么说它是四分之一？」，小柔基于折纸操作说明了理由。\n[[i]]两次追问都出现在学生先给出答案之后，时机较好；学生回应平均约 13 秒，均包含「因为……」句式。\n[[s]]可以尝试在学生说理后追加「谁可以补充？」，把个体推理变成全班资源。`};
-  if(/参与|充分|学生/.test(q)) return {t:`[[d]]学生话语占比约 ${STAT.sPct}%，共 ${STAT.sTurn} 个话轮，4 名学生发言。参与最密集的是 @128 到 @228 的「合作思考」段：同意/不同意 → 挑战 → 解释他人 → 补充 连续推进。\n[[i]]这一段学生在回应同伴观点而不只是回答教师，是本节选参与质量最高的部分。`};
-  if(/等待|停顿|时间/.test(q)) return {t:`[[d]]提问后平均等待约 2.8 秒；最短的一次在 @152 挑战之后，约 1.2 秒学生即齐声回答。\n[[i]]齐答且等待很短，通常说明问题偏封闭，学生可能没有充分思考。\n[[s]]通用建议（非本课数据结论）：把封闭问法改为开放问法后等待 3–5 秒再点名。`};
-  return {t:`[[d]]这个问题超出了本视频字幕与分析能回答的范围，我不能编造课堂上没有的信息。\n[[s]]你可以问我：某个策略的使用情况、某段对话的过程、师生话语与轮次数据，例如「${AI_SUGG[0]}」。`};
-}
+const TINY_CLOUD = {
+ t:[{w:'weight',f:9,c:'c'},{w:'eraser',f:6,c:'c'},{w:'pencil',f:4,c:'c'},{w:'think',f:4,c:'m'},{w:'alright',f:4,c:'soc'},{w:'why',f:3,c:'a'},{w:'feel',f:3,c:'m'},{w:'okay',f:3,c:'soc'},{w:'thought experiment',f:2,c:'a'},{w:'shavings',f:2,c:'c'},{w:'tinier',f:2,c:'c'},{w:'lift',f:2,c:'c'},{w:'eyes',f:2,c:'c'},{w:'air',f:2,c:'c'},{w:'agree',f:2,c:'a'},{w:'convince',f:1,c:'a'},{w:'comparing',f:1,c:'a'},{w:'contribute',f:1,c:'a'}],
+ s:[{w:'weight',f:19,c:'c'},{w:'tiny',f:13,c:'c'},{w:'because',f:12,c:'m'},{w:'yeah',f:6,c:'soc'},{w:'feel',f:5,c:'m'},{w:'air',f:5,c:'c'},{w:'agree',f:4,c:'a'},{w:'clay',f:4,c:'c'},{w:'think',f:4,c:'m'},{w:'cube',f:3,c:'c'},{w:'tinier',f:3,c:'c'},{w:'drop',f:3,c:'c'},{w:'eyes',f:3,c:'c'},{w:'know',f:3,c:'m'},{w:'um',f:3,c:'soc'},{w:'copper',f:2,c:'c'},{w:'lighter',f:2,c:'c'},{w:'smaller',f:2,c:'c'}],
+};
+
+/* ================= 案例注册表 ================= */
+const VIDEOS = {
+ fx: {
+  title:'分数的初步认识（节选）',
+  meta:`三年级 · 数学 · 05:00 · <span style="color:var(--ok)">仅自己可见</span>`,
+  badge:'模拟课堂画面', tname:'王老师', dur:300, subs:FX_SUBS, cloud:FX_CLOUD, wait:'2.8',
+  longest:16, longestAt:228,
+  cloudNote:'字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：按「该角色有效词次」计，分词与停用词表 v1。',
+  quality:`<div class="card" style="display:flex;gap:8px;align-items:center;background:var(--ok-tint);box-shadow:none;padding:10px 13px"><span style="font-size:14px">✓</span><span style="font-size:12px;color:var(--ok);line-height:1.5">音频清晰，教师/学生角色识别置信度高；识别结果可在字幕与 APT 卡片中纠正。（演示样例数据）</span></div>`,
+  obs:`<div class="card"><div style="font-size:13.5px;font-weight:700">值得注意的地方</div>
+    <div class="obs"><span class="ob-k">观察 1 · 有证据</span><br>两次<b>追问推理</b>都出现在学生给出答案之后，且都得到了完整说理 <span class="tChip" onclick="seekFlash(58)">00:58</span><span class="tChip" onclick="seekFlash(252)">04:12</span></div>
+    <div class="obs"><span class="ob-k">观察 2 · 有证据</span><br>本节选覆盖<b>全部 4 类</b> APT 目标；合作思考类连续出现 3 次，形成「同意 → 挑战 → 解释他人」的推进链 <span class="tChip" onclick="seekFlash(128)">02:08</span><span class="tChip" onclick="seekFlash(152)">02:32</span><span class="tChip" onclick="seekFlash(178)">02:58</span></div>
+    <p class="note">Uptalk 不输出综合评分——每个结论都可回到课堂原话核验。</p></div>`,
+  goalCmp:`<div class="card" style="background:var(--brand-tint);box-shadow:none"><div style="font-size:12.5px;line-height:1.65;color:var(--brand-deep)"><b>目标对照</b> · 本课实践目标「追问推理」出现 <b>2 次</b>，两次学生均给出依据 ✓　建议下一步关注：追问后再邀请其他学生回应（补充 / 同意不同意）。</div></div>`,
+  seq:`<div class="card"><div style="font-size:13.5px;font-weight:700">互动序列</div>
+    <div class="seqRow"><span>教师 → 学生 回应</span><b class="num">12 次</b></div>
+    <div class="seqRow"><span>学生 → 学生 接续（经教师引导）</span><b class="num">3 次</b></div>
+    <div class="seqRow"><span>提问后平均等待</span><b class="num">2.8 秒</b></div>
+    <p class="note">口径 v1：轮次 = 说话角色切换；&lt;1 秒的语气词不计；等待时间 = 问句结束到下一位发言开始。指标口径冻结后不随版本静默变化。</p></div>`,
+  sugg:['我的追问效果如何？','哪个环节学生参与最充分？','我的等待时间够吗？'],
+  greet:'你好，王老师。我已读取本视频的字幕与分析结果，可以带时间戳回答你的问题。',
+  ai(q){
+    if(/追问|press|推理/.test(q)) return `[[d]]本节选检测到 2 次追问推理：@58 「你为什么认为是二分之一？」，小雨给出了完整的份数解释；@252 「为什么说它是四分之一？」，小柔基于折纸操作说明了理由。\n[[i]]两次追问都出现在学生先给出答案之后，时机较好；学生回应平均约 13 秒，均包含「因为……」句式。\n[[s]]可以尝试在学生说理后追加「谁可以补充？」，把个体推理变成全班资源。`;
+    if(/参与|充分|学生/.test(q)) return `[[d]]学生话语占比约 ${STAT.sPct}%，共 ${STAT.sTurn} 个话轮，4 名学生发言。参与最密集的是 @128 到 @228 的「合作思考」段：同意/不同意 → 挑战 → 解释他人 → 补充 连续推进。\n[[i]]这一段学生在回应同伴观点而不只是回答教师，是本节选参与质量最高的部分。`;
+    if(/等待|停顿|时间/.test(q)) return `[[d]]提问后平均等待约 2.8 秒；最短的一次在 @152 挑战之后，约 1.2 秒学生即齐声回答。\n[[i]]齐答且等待很短，通常说明问题偏封闭，学生可能没有充分思考。\n[[s]]通用建议（非本课数据结论）：把封闭问法改为开放问法后等待 3–5 秒再点名。`;
+    return `[[d]]这个问题超出了本视频字幕与分析能回答的范围，我不能编造课堂上没有的信息。\n[[s]]你可以问我：某个策略的使用情况、某段对话的过程、师生话语与轮次数据，例如「${this.sugg[0]}」。`;
+  },
+  ref:{
+   items:[
+    {t:'我注意到什么？',h:'引用具体片段，而不是整体印象',rows:3,
+     chips:[{t:152,g:2,label:'02:32 挑战'},{t:178,g:4,label:'02:58 引导解释他人'}],
+     val:'我挑战「两块不一样大还能叫二分之一吗」之后，没有直接讲结论，而是让学生解释小宇的话，学生说出了「不平均就没有意义」。'},
+    {t:'我怎样理解它？',h:'补充模型看不到的课堂背景',val:'这个班以前习惯等我给标准答案，这次把解释的机会交回给学生，效果比预想好。'},
+    {t:'下次我准备尝试什么？',h:'选一个策略，写出具体话术',ph:'例：在学生说出理由后，追加一句「谁可以在他的想法上再补充？」',val:'在追问之后加一步「补充」：谁可以在他的想法上再补充？'},
+    {t:'我如何知道有变化？',h:'写可观察的迹象',ph:'例：至少出现一次学生主动回应同伴观点',val:'至少出现 1 次学生不经我点名、主动接着同伴的观点往下说。'}],
+   goal:{label:'由此创建下节课目标：补充',n:'补充',g:4}},
+ },
+ tiny: {
+  title:'Do tiny things have weight?',
+  meta:`小学科学 · 英语课堂 · 05:38 · 真实音频转写 · <span style="color:var(--ok)">仅自己可见</span>`,
+  badge:'音频样本 · 无画面', tname:'教师', dur:338, subs:TINY_SUBS, cloud:TINY_CLOUD, wait:'≈0.2',
+  longest:58, longestAt:280.3,
+  cloudNote:'字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：英文按空格分词，停用词表 v1；按「该角色有效词次」计。',
+  quality:`<div class="card" style="display:flex;gap:8px;align-items:flex-start;background:var(--warn-bg);box-shadow:none;padding:10px 13px"><span style="font-size:13px">ℹ️</span><span style="font-size:12px;color:var(--warn-ink);line-height:1.6">真实课堂音频 · 本地自动转写（whisper-small）：个别词句与人名可能不准；教师/学生角色由内容推断，置信度中等——均可人工纠正。原始音频未随 demo 发布，此处仅展示转写与分析结果。</span></div>`,
+  obs:`<div class="card"><div style="font-size:13.5px;font-weight:700">值得注意的地方</div>
+    <div class="obs"><span class="ob-k">观察 1 · 有证据</span><br><b>重述确认</b>留出了验证空间——你复述 Tegan 的想法后问 “Is that what you're thinking?”，学生回答 “No” 并自行澄清，这正是 Revoice 的设计意图 <span class="tChip" onclick="seekFlash(146.5)">02:26</span></div>
+    <div class="obs"><span class="ob-k">观察 2 · 有证据</span><br>学生<b>自发使用协作话语</b>：“I do agree with Bailey…”、“adding on to what Christina said…”——同伴回应文化已经形成 <span class="tChip" onclick="seekFlash(3.9)">00:04</span><span class="tChip" onclick="seekFlash(103.5)">01:43</span></div>
+    <div class="obs"><span class="ob-k">观察 3 · 有证据</span><br>学生话语占 65%；你最长的一段连续讲述（58 秒）集中在结尾思想实验 <span class="tChip" onclick="seekFlash(280.3)">04:40</span></div>
+    <p class="note">Uptalk 不输出综合评分——每个结论都可回到课堂原话核验。</p></div>`,
+  goalCmp:`<div class="card" style="background:var(--brand-tint);box-shadow:none"><div style="font-size:12.5px;line-height:1.65;color:var(--brand-deep)"><b>话步覆盖</b> · 检出 3/8 类：重述确认 ×3、追问推理 ×1、挑战 ×3。未检出：多说、重新阐述、同意/不同意、补充、引导解释他人——学生已自发使用 “agree / adding on” 句式，把「重新阐述」「补充」显式交给学生的成本很低。</div></div>`,
+  seq:`<div class="card"><div style="font-size:13.5px;font-weight:700">互动序列</div>
+    <div class="seqRow"><span>教师提问（问句）</span><b class="num">10 次</b></div>
+    <div class="seqRow"><span>学生主动回应同伴观点</span><b class="num">≈5 次</b></div>
+    <div class="seqRow"><span>问后平均间隙</span><b class="num">≈0.2 秒</b></div>
+    <p class="note">口径 v1（估算）：间隙由语音切分时间戳计算，静音已被识别裁剪且含抢答齐答，数值偏低，仅供参考；正式口径待 03 指标文档冻结。</p></div>`,
+  sugg:['我的重述确认用得怎么样？','学生之间有互相回应吗？','这节课还缺哪些话步？'],
+  greet:'你好。这是真实课堂音频的转写与分析（英语科学课，约 5 分 38 秒），我可以带时间戳回答你的问题。',
+  ai(q){
+    if(/重述|revoice|确认/i.test(q)) return `[[d]]检测到 3 次重述确认：@99 “…so just because something's lighter doesn't mean it doesn't have weight?”；@146 你复述后追问 “Is that what you're thinking?”，学生回答 “No” 并自行澄清；@199 “So his reaction, you're seeing him open his eyes?”。\n[[i]]第二次最有价值——你真正留出了验证空间，学生行使了否决权并把想法说得更清楚，这正是 Revoice 与简单重复的区别。\n[[s]]可以在学生澄清后再加一步「重新阐述」：Who can put her idea in their own words?`;
+    if(/互相|回应|同伴|peer/i.test(q)) return `[[d]]学生自发回应同伴约 5 处：@3.9 “I do agree with Bailey…”；@82 Christina 直接向 Tegan 提出 pine cube 反例；@103 “adding on to what Christina said…”。\n[[i]]多数同伴回应发生在你不点名的情况下，说明这个班的对话文化已经支持学生-学生互动。`;
+    if(/缺|没有|哪些话步|missing/i.test(q)) return `[[d]]本段检出 3/8 类话步（重述确认 ×3、追问推理 ×1、挑战 ×3）；未检出：多说、重新阐述、同意/不同意、补充、引导解释他人。\n[[i]]学生已在自发使用同意/补充句式，教师把这两类话步显式化的成本很低。\n[[s]]通用建议（非本课数据结论）：在关键观点后试试 “Who can add on to her idea?”。`;
+    return `[[d]]这个问题超出了本音频字幕与分析能回答的范围，我不能编造课堂上没有的信息。\n[[s]]你可以问我：${this.sugg.join('；')}。`;
+  },
+  ref:{
+   items:[
+    {t:'我注意到什么？',h:'引用具体片段，而不是整体印象',rows:3,
+     chips:[{t:146.5,g:1,label:'02:26 重述确认'},{t:173.9,g:2,label:'02:53 追问推理'},{t:280.3,g:2,label:'04:40 挑战'}],
+     val:'在 02:26 我重述 Tegan 的想法后问 “Is that what you\'re thinking?”，她回答 “No” 并自己说清了想法——重述给了学生纠正我的机会。'},
+    {t:'我怎样理解它？',h:'补充模型看不到的课堂背景',val:'这段讨论学生话语占约 65%，我的角色主要是分配话轮和在关键处挑战；学生互相回应大多不需要我点名。'},
+    {t:'下次我准备尝试什么？',h:'选一个策略，写出具体话术',ph:'例：把「重新阐述」交给学生——Who can put her idea in their own words?'},
+    {t:'我如何知道有变化？',h:'写可观察的迹象',ph:'例：至少 1 次学生准确转述同伴的观点'}],
+   goal:{label:'由此创建下节课目标：重新阐述',n:'重新阐述',g:3}},
+ },
+};
+let SUBS=[],DUR=0,V=null,STAT=null,DET=[];
 
 /* ================= 状态与工具 ================= */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const S={t:0,playing:false,timer:null,stack:[],goals:[{n:'追问推理',g:2}],hideSoc:false,cloudR:'t',shared:false,chatStarted:false};
+const S={t:0,playing:false,timer:null,stack:[],goals:[{n:'追问推理',g:2}],hideSoc:false,cloudR:'t',shared:false,vid:null};
 const fmt=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function toast(m){const el=$('#toast');el.textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200);}
 
 /* 统计（由字幕数据实时计算，保证口径一致） */
-const STAT=(()=>{
+function computeStat(){
   let tSec=0,sSec=0,tTurn=0,sTurn=0,prev=null;
   SUBS.forEach(u=>{const d=u.e-u.s;
     if(u.w==='t'){tSec+=d;if(prev!=='t')tTurn++;}
@@ -818,7 +941,28 @@ const STAT=(()=>{
   const o=DUR-tSec-sSec;
   return {tSec,sSec,o,tTurn,sTurn,tPct:Math.round(tSec/DUR*100),sPct:Math.round(sSec/DUR*100),oPct:Math.round(o/DUR*100),
     apt:SUBS.filter(u=>u.a).length,types:new Set(SUBS.filter(u=>u.a).map(u=>u.a)).size};
-})();
+}
+function tickList(){const a=[];for(let t=0;t<=DUR-25;t+=60)a.push(t);a.push(DUR);return a;}
+
+/* ================= 案例切换 ================= */
+function setCase(id){
+  if(V)V._chat=$('#chatBox').innerHTML;
+  pause();S.t=0;lastSubIdx=-1;
+  S.vid=id;V=VIDEOS[id];SUBS=V.subs;DUR=V.dur;
+  STAT=computeStat();
+  V._det=V._det||SUBS.map((u,i)=>u.a?{i,s:u.s,a:u.a,c:u.c,x:u.x,ok:false,fix:null}:null).filter(Boolean);
+  DET=V._det;
+  $('#dTitle').textContent=V.title;$('#dMeta').innerHTML=V.meta;
+  $('#tmDur').textContent=fmt(DUR);
+  $('#stageBadge').textContent=V.badge;$('#figTName').textContent=V.tname;
+  $('#qualityBox').innerHTML=V.quality;$('#obsBox').innerHTML=V.obs;
+  $('#goalCmp').innerHTML=V.goalCmp;$('#seqBox').innerHTML=V.seq;
+  $('#cloudNote').innerHTML=V.cloudNote;
+  buildSubs();buildOverview();buildApt();buildCloud();buildStruct();buildBarMks();buildReflect();
+  $('#chatBox').innerHTML=V._chat||'';
+  $('#suggBox').innerHTML=V._started?V.sugg.map(q=>`<button onclick="askAI('${q}')">${q}</button>`).join(''):'';
+  syncUI(true);
+}
 
 /* ================= 路由 ================= */
 function showTab(id){
@@ -837,10 +981,11 @@ function popScr(){
   const el=document.getElementById(id);
   el.classList.remove('in');setTimeout(()=>el.classList.remove('on'),220);
 }
-function openAnalysis(t,pane){
+function openCase(id,t,pane){
   if(!S.stack.includes('scr-detail')){showTab('scr-analyze');pushScr('scr-detail');}
+  if(S.vid!==id)setCase(id);
   aTab(pane||'overview');
-  seekFlash(t);
+  if(t!=null)seekFlash(t);
 }
 
 /* ================= 播放器 ================= */
@@ -872,7 +1017,7 @@ function syncUI(force){
   if(i!==lastSubIdx||force){
     lastSubIdx=i;
     const u=SUBS[i];
-    $('#osdText').textContent=u?u.x:'（本节选结束）';
+    $('#osdText').textContent=u?u.x:(S.t>=DUR-0.5?'（本节选结束）':'……');
     $$('#figs .fig').forEach(f=>f.classList.toggle('talk',u&&f.dataset.f===u.w));
     if(u&&u.w==='s')$('#figStuName').textContent=u.n;
     $$('.subList').forEach(list=>{
@@ -892,6 +1037,7 @@ function buildSubs(){
     return `<div class="sub" onclick="seek(${u.s})"><div class="who" style="background:${col}">${who}</div><div><div class="st">${u.n}：${u.x}${mk}</div><div class="stm">${fmt(u.s)}</div></div></div>`;
   }).join('');
   $$('.aPane[data-p="overview"], .aPane[data-p="apt"]').forEach(p=>{
+    p.querySelectorAll('.subList').forEach(n=>n.remove());
     const host=document.createElement('div');host.className='subList';host.innerHTML=html;p.appendChild(host);
   });
 }
@@ -899,10 +1045,10 @@ function buildSubs(){
 /* ================= 概览 ================= */
 function buildOverview(){
   $('#statGrid').innerHTML=`
-    <div class="stat"><div class="sv">05:00<small>节选</small></div><div class="sk">分析时长</div></div>
+    <div class="stat"><div class="sv">${fmt(DUR)}<small>节选</small></div><div class="sk">分析时长</div></div>
     <div class="stat"><div class="sv num">${STAT.tTurn+STAT.sTurn}</div><div class="sk">对话轮次（师 ${STAT.tTurn} · 生 ${STAT.sTurn}）</div></div>
     <div class="stat"><div class="sv num">${STAT.apt}<small>次 · ${STAT.types}/8 类</small></div><div class="sk">APT 可能实例</div></div>
-    <div class="stat"><div class="sv num">2.8<small>秒</small></div><div class="sk">提问后平均等待</div></div>`;
+    <div class="stat"><div class="sv num">${V.wait}<small>秒</small></div><div class="sk">提问后平均等待</div></div>`;
   $('#talkBar').innerHTML=`
     <i style="flex:${STAT.tPct};background:var(--teach)">${STAT.tPct}%</i>
     <i style="flex:${STAT.sPct};background:var(--stud)">${STAT.sPct}%</i>
@@ -910,7 +1056,6 @@ function buildOverview(){
 }
 
 /* ================= APT 页 ================= */
-let DET=SUBS.map((u,i)=>u.a?{i,s:u.s,a:u.a,c:u.c,x:u.x,ok:false,fix:null}:null).filter(Boolean);
 function buildApt(){
   $('#aptTotal').textContent=`共 ${DET.length} 次`;
   const cnt={};Object.keys(APT).forEach(k=>cnt[k]=0);DET.forEach(d=>cnt[d.fix||d.a]++);
@@ -920,7 +1065,7 @@ function buildApt(){
       <div class="ab"><i style="width:${cnt[k]/max*100}%;background:${GC[v.g]}"></i></div>
       <div class="ac">${cnt[k]}</div></div>`).join('');
   $('#aptLegend').innerHTML=Object.entries(GOALS).map(([g,n])=>`<b style="--lc:${GC[g]}">${n}</b>`).join('');
-  const ticks=[0,60,120,180,240,300];
+  const ticks=tickList();
   $('#aptTl').innerHTML='<div class="axis"></div>'+
     DET.map((d,k)=>`<button class="tlm" style="left:calc(10px + ${d.s/DUR}*(100% - 20px));background:${GC[APT[d.fix||d.a].g]}" title="${APT[d.fix||d.a].cn} ${fmt(d.s)}" onclick="jumpEv(${k})" aria-label="${APT[d.fix||d.a].cn}"></button>`).join('')+
     ticks.map(t=>`<span class="tick" style="left:calc(10px + ${t/DUR}*(100% - 20px))">${fmt(t)}</span>`).join('');
@@ -932,8 +1077,8 @@ function buildApt(){
         <span class="pill g${a.g}">${a.cn} · ${a.en}</span>
         ${d.fix?'<span class="corrTag">已由教师改正</span>':''}
         <span class="conf">置信度 ${d.c}%</span></div>
-      <div class="q">王老师：「${d.x}」</div>
-      ${nxt?`<div class="cx">学生回应 · ${nxt.n}：「${nxt.x}」</div>`:''}
+      <div class="q">${SUBS[d.i].n}：「${d.x}」</div>
+      ${nxt&&nxt.w==='s'?`<div class="cx">学生回应 · ${nxt.n}：「${nxt.x}」</div>`:''}
       <div class="ev-f">
         <button class="miniBtn ${d.ok?'on':''}" onclick="confirmEv(${k},this)">${d.ok?'✓ 已确认':'确认'}</button>
         <button class="miniBtn" onclick="openFix(${k})">改正</button>
@@ -968,7 +1113,7 @@ function doFix(k,key){
 function cloudRole(r){S.cloudR=r;$$('#cloudSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));buildCloud();}
 function toggleSoc(){S.hideSoc=!S.hideSoc;$('#socSw').classList.toggle('on',S.hideSoc);buildCloud();}
 function buildCloud(){
-  let ws=CLOUD[S.cloudR].filter(w=>!(S.hideSoc&&w.c==='soc'));
+  let ws=V.cloud[S.cloudR].filter(w=>!(S.hideSoc&&w.c==='soc'));
   const max=Math.max(...ws.map(w=>w.f));
   const order=[...ws].sort((a,b)=>b.f-a.f);
   const mixed=[];order.forEach((w,i)=>{i%2?mixed.push(w):mixed.unshift(w);});
@@ -978,13 +1123,13 @@ function buildCloud(){
   }).join('');
 }
 function openWord(word){
-  const w=CLOUD[S.cloudR].find(x=>x.w===word);
-  const hits=SUBS.filter(u=>u.x.includes(word)).slice(0,2);
+  const w=V.cloud[S.cloudR].find(x=>x.w===word);
+  const hits=SUBS.filter(u=>u.x.toLowerCase().includes(word.toLowerCase())).slice(0,2);
   openSheet(`<div class="shHead">「${word}」</div>
     <div class="shSub">出现 ${w.f} 次 · 类别：${CNAME[w.c]}（自动分类，<button style="color:var(--brand-deep);font-weight:600" onclick="toast('分类纠正（演示略）')">纠正</button>）</div>
     <div style="margin-top:12px">${hits.length?hits.map(h=>`
       <div style="padding:10px 0;border-bottom:1px solid var(--line2)">
-        <div style="font-size:13.5px;line-height:1.6">${h.n}：${h.x.replace(new RegExp(word,'g'),`<b style="color:${CCOL[w.c]}">${word}</b>`)}</div>
+        <div style="font-size:13.5px;line-height:1.6">${h.n}：${h.x.replace(new RegExp(word,'gi'),m=>`<b style="color:${CCOL[w.c]}">${m}</b>`)}</div>
         <div style="margin-top:6px"><span class="tChip" onclick="closeSheet();seekFlash(${h.s})">${fmt(h.s)} 跳转原文</span></div>
       </div>`).join(''):'<div class="shSub">例句索引建立中（演示数据未覆盖）</div>'}</div>`);
 }
@@ -997,7 +1142,7 @@ function buildStruct(){
     const col=u.w==='t'?'#0D8A7A':'#C2410C';
     return `<rect x="${x}" y="${y[u.w]}" width="${Math.max(w,3)}" height="${hh}" rx="5" fill="${col}" style="cursor:pointer" onclick="seekFlash(${u.s})"><title>${u.n} ${fmt(u.s)}</title></rect>`;
   }).join('');
-  const ticks=[0,60,120,180,240,300].map(t=>`<text x="${t/DUR*W}" y="${H-4}" font-size="11" fill="#8B95A1" text-anchor="${t===0?'start':t===300?'end':'middle'}" font-family="inherit">${fmt(t)}</text>`).join('');
+  const ticks=tickList().map(t=>`<text x="${t/DUR*W}" y="${H-4}" font-size="11" fill="#8B95A1" text-anchor="${t===0?'start':t===DUR?'end':'middle'}" font-family="inherit">${fmt(t)}</text>`).join('');
   $('#bandBox').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="师生轮次时间轴">
     <text x="4" y="${y.t-5}" font-size="11.5" fill="#55616E">教师</text>
     <text x="4" y="${y.s-5}" font-size="11.5" fill="#55616E">学生</text>
@@ -1006,7 +1151,7 @@ function buildStruct(){
     <div class="stat"><div class="sv num">${STAT.tTurn} / ${STAT.sTurn}</div><div class="sk">教师 / 学生轮次</div></div>
     <div class="stat"><div class="sv num">${(STAT.tSec/STAT.tTurn).toFixed(1)}<small>秒</small></div><div class="sk">教师平均话轮时长</div></div>
     <div class="stat"><div class="sv num">${(STAT.sSec/STAT.sTurn).toFixed(1)}<small>秒</small></div><div class="sk">学生平均话轮时长</div></div>
-    <div class="stat"><div class="sv num">16<small>秒</small></div><div class="sk">最长连续讲述 <span class="tChip" onclick="seekFlash(228)">03:48</span></div></div>`;
+    <div class="stat"><div class="sv num">${V.longest}<small>秒</small></div><div class="sk">最长连续讲述 <span class="tChip" onclick="seekFlash(${V.longestAt})">${fmt(V.longestAt)}</span></div></div>`;
 }
 
 /* ================= AI ================= */
@@ -1017,9 +1162,9 @@ function chipify(t){
     .replace(/\[\[s\]\]/g,'<span class="aiTag s">通用建议</span>');
 }
 function buildAI(){
-  if(S.chatStarted)return;S.chatStarted=true;
-  $('#suggBox').innerHTML=AI_SUGG.map(q=>`<button onclick="askAI('${q}')">${q}</button>`).join('');
-  addMsg('你好，王老师。我已读取本视频的字幕与分析结果，可以带时间戳回答你的问题。','ai');
+  if(V._started)return;V._started=true;
+  $('#suggBox').innerHTML=V.sugg.map(q=>`<button onclick="askAI('${q}')">${q}</button>`).join('');
+  addMsg(V.greet,'ai');
 }
 function addMsg(t,who){
   const el=document.createElement('div');el.className='cm'+(who==='me'?' me':'');
@@ -1032,9 +1177,21 @@ function askAI(q){
   addMsg(q,'me');
   const tp=document.createElement('div');tp.className='cm';tp.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
   $('#chatBox').appendChild(tp);$('#detailBody').scrollTo({top:9e6,behavior:'smooth'});
-  setTimeout(()=>{tp.remove();addMsg(aiAnswer(q).t,'ai');},900);
+  setTimeout(()=>{tp.remove();addMsg(V.ai(q),'ai');},900);
 }
 function sendChat(){const v=$('#chatIn').value.trim();if(!v)return;$('#chatIn').value='';askAI(v);}
+
+/* ================= 反思页构建 ================= */
+function buildReflect(){
+  const R=V.ref;
+  $('#refBody').innerHTML=R.items.map((it,i)=>`
+    <div class="refQ"><div class="rq-t">${i+1} · ${it.t}</div><div class="rq-h">${it.h}</div>
+    ${it.chips?`<div class="evChips">${it.chips.map(c=>`<span class="evChip" onclick="seekFlash(${c.t})"><i style="background:var(--g${c.g})"></i>${c.label}</span>`).join('')}<button class="evChip" style="color:var(--brand-deep)" onclick="toast('从字幕 / APT 证据 / 图表中选择片段加入（演示略）')">＋ 添加证据</button></div>`:''}
+    <textarea rows="${it.rows||2}"${it.ph?` placeholder="${it.ph}"`:''}>${it.val||''}</textarea></div>`).join('');
+  const gb=$('#refGoalBtn');
+  gb.textContent=R.goal.label;gb.disabled=false;gb.style.opacity=1;
+  gb.onclick=()=>addGoal(R.goal.n,R.goal.g,gb);
+}
 
 /* ================= 学习页构建 ================= */
 function buildLearn(){
@@ -1148,11 +1305,11 @@ $('#barWrap').addEventListener('pointerdown',e=>{
 
 /* 进度条上的 APT 小标记 */
 function buildBarMks(){
-  $('#barMks').innerHTML=DET.map(d=>`<span class="mk" style="left:${d.s/DUR*100}%;background:${GC[APT[d.a].g]}"></span>`).join('');
+  $('#barMks').innerHTML=DET.map(d=>`<span class="mk" style="left:${d.s/DUR*100}%;background:${GC[APT[d.fix||d.a].g]}"></span>`).join('');
 }
 
 /* ================= 初始化 ================= */
-buildLearn();buildSubs();buildOverview();buildApt();buildCloud();buildStruct();buildBarMks();renderGoals();syncUI(true);
+buildLearn();renderGoals();setCase('fx');
 </script>
 
 </body>
