@@ -938,7 +938,7 @@ let SUBS=[],DUR=0,V=null,STAT=null,DET=[];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const S={t:0,playing:false,timer:null,stack:[],goals:[{n:'追问推理',g:2}],hideSoc:false,cloudR:'t',shared:false,vid:null};
 const fmt=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
-function toast(m){const el=$('#toast');el.textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200);}
+function toast(m,ms){const el=$('#toast');el.textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),ms||2200);}
 
 /* 统计（由字幕数据实时计算，保证口径一致） */
 function computeStat(){
@@ -1012,6 +1012,22 @@ AUD.addEventListener('error',()=>{
     $('#stageBadge').textContent='媒体不可用 · 模拟播放';
   }
 });
+/* iOS 静音键规避：用户手势内启动静音 WebAudio 循环，把 Safari 音频会话切到「播放」类别，
+   使 playsinline 媒体不再被侧边静音开关消音（unmute.js 同原理） */
+let sessAC=null,sessSrc=null;
+function audioSessionOn(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    if(!sessAC)sessAC=new AC();
+    if(sessAC.state==='suspended')sessAC.resume();
+    if(!sessSrc){
+      const b=sessAC.createBuffer(1,Math.max(1,Math.floor(sessAC.sampleRate/10)),sessAC.sampleRate);
+      sessSrc=sessAC.createBufferSource();sessSrc.buffer=b;sessSrc.loop=true;
+      sessSrc.connect(sessAC.destination);sessSrc.start(0);
+    }
+  }catch(e){}
+}
+function audioSessionOff(){try{if(sessSrc){sessSrc.stop();sessSrc.disconnect();sessSrc=null;}}catch(e){}}
 /* 声波可视化（WebAudio 不可用时退化为正弦伪波形） */
 let vizAC=null,analyser=null,vizData=null,vizFail=false,vizRaf=0;
 function initViz(){
@@ -1074,10 +1090,13 @@ function playPause(){S.playing?pause():play();}
 function play(){
   S.playing=true;$('#playIco').innerHTML='<path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/>';
   if(mediaOn()){
+    audioSessionOn();
     initViz();
     if(vizAC&&vizAC.state==='suspended')vizAC.resume();
+    AUD.muted=false;AUD.volume=1;
     if(Math.abs(AUD.currentTime-S.t)>0.4)AUD.currentTime=S.t;
-    AUD.play().catch(()=>{V._mediaFail=true;$('#stageBadge').textContent='音频不可用 · 模拟播放';});
+    AUD.play().catch(()=>{V._mediaFail=true;$('#stageBadge').textContent='媒体不可用 · 模拟播放';});
+    if(!S._sndHint&&('ontouchstart' in window)){S._sndHint=1;toast('如无声音：请关闭手机侧边静音开关，并调高媒体音量',3600);}
   }
   S.timer=setInterval(()=>{
     S.t=mediaOn()?AUD.currentTime:S.t+0.25;
@@ -1088,7 +1107,7 @@ function play(){
 }
 function pause(){
   S.playing=false;$('#playIco').innerHTML='<path d="M8 5.5v13l11-6.5z"/>';
-  clearInterval(S.timer);AUD.pause();
+  clearInterval(S.timer);AUD.pause();audioSessionOff();
 }
 let lastSubIdx=-1;
 function syncUI(force){
