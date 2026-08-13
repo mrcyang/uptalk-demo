@@ -149,6 +149,13 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
 .fig.talk{opacity:1;transform:scale(1.08)}
 .fig.talk .fc{border-color:#FFD166;box-shadow:0 0 16px rgba(255,209,102,.45);animation:pulse .9s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+#viz{position:absolute;inset:0;width:100%;height:100%;opacity:.7;pointer-events:none}
+#realMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#000}
+.stage.video #realMedia{display:block}
+.stage.video .figs,.stage.video #viz,.stage.video #pTitleGrad{display:none}
+.stage.video .wm{z-index:2;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.stage.video .demo{z-index:2}
+.stage.video .osd{z-index:2}
 .osd{position:absolute;left:0;right:0;bottom:6px;text-align:center;padding:0 14px}
 .osd span{display:inline-block;background:rgba(0,0,0,.62);color:#fff;font-size:12px;line-height:1.5;padding:4px 10px;border-radius:8px;max-width:100%}
 .ctrl{display:flex;align-items:center;gap:9px;padding:8px 12px;background:#0C1119}
@@ -508,8 +515,10 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
       </div>
 
       <div class="player">
-        <div class="stage">
+        <div class="stage" id="stageBox">
+          <video id="realMedia" preload="metadata" playsinline webkit-playsinline></video>
           <div class="wm">UPTALK</div><div class="demo" id="stageBadge">模拟课堂画面</div>
+          <canvas id="viz"></canvas>
           <div class="figs" id="figs">
             <div class="fig" data-f="t"><div class="fc">👩‍🏫</div><div class="fn" id="figTName">王老师</div></div>
             <div class="fig" data-f="s"><div class="fc">🧒</div><div class="fn" id="figStuName">学生</div></div>
@@ -889,7 +898,7 @@ const VIDEOS = {
  tiny: {
   title:'Do tiny things have weight?',
   meta:`小学科学 · 英语课堂 · 05:38 · 真实音频转写 · <span style="color:var(--ok)">仅自己可见</span>`,
-  badge:'音频样本 · 无画面', tname:'教师', dur:338, subs:TINY_SUBS, cloud:TINY_CLOUD, wait:'≈0.2',
+  badge:'真实课堂实录', tname:'教师', dur:338, subs:TINY_SUBS, cloud:TINY_CLOUD, wait:'≈0.2', media:'classroom-web.mp4', mediaKind:'video',
   longest:58, longestAt:280.3,
   cloudNote:'字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：英文按空格分词，停用词表 v1；按「该角色有效词次」计。',
   quality:`<div class="card" style="display:flex;gap:8px;align-items:flex-start;background:var(--warn-bg);box-shadow:none;padding:10px 13px"><span style="font-size:13px">ℹ️</span><span style="font-size:12px;color:var(--warn-ink);line-height:1.6">真实课堂音频 · 本地自动转写（whisper-small）：个别词句与人名可能不准；教师/学生角色由内容推断，置信度中等——均可人工纠正。原始音频未随 demo 发布，此处仅展示转写与分析结果。</span></div>`,
@@ -954,7 +963,11 @@ function setCase(id){
   DET=V._det;
   $('#dTitle').textContent=V.title;$('#dMeta').innerHTML=V.meta;
   $('#tmDur').textContent=fmt(DUR);
-  $('#stageBadge').textContent=V.badge;$('#figTName').textContent=V.tname;
+  if(V.media&&!V._mediaFail){if(AUD.getAttribute('src')!==V.media){AUD.src=V.media;AUD.load();}}
+  else AUD.removeAttribute('src');
+  $('#stageBox').classList.toggle('video',!!(V.media&&V.mediaKind==='video'&&!V._mediaFail));
+  $('#stageBadge').textContent=V._mediaFail?'媒体不可用 · 模拟播放':V.badge;
+  $('#figTName').textContent=V.tname;
   $('#qualityBox').innerHTML=V.quality;$('#obsBox').innerHTML=V.obs;
   $('#goalCmp').innerHTML=V.goalCmp;$('#seqBox').innerHTML=V.seq;
   $('#cloudNote').innerHTML=V.cloudNote;
@@ -988,9 +1001,53 @@ function openCase(id,t,pane){
   if(t!=null)seekFlash(t);
 }
 
-/* ================= 播放器 ================= */
+/* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
+const AUD=document.getElementById('realMedia');
+const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
+AUD.addEventListener('ended',()=>pause());
+AUD.addEventListener('error',()=>{
+  if(V&&V.media&&AUD.getAttribute('src')){
+    V._mediaFail=true;
+    $('#stageBox').classList.remove('video');
+    $('#stageBadge').textContent='媒体不可用 · 模拟播放';
+  }
+});
+/* 声波可视化（WebAudio 不可用时退化为正弦伪波形） */
+let vizAC=null,analyser=null,vizData=null,vizFail=false,vizRaf=0;
+function initViz(){
+  if(analyser||vizFail||!mediaOn()||V.mediaKind==='video')return;
+  if(!/^https?:$/.test(location.protocol)){vizFail=true;return;}
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    vizAC=new AC();
+    const src=vizAC.createMediaElementSource(AUD);
+    analyser=vizAC.createAnalyser();analyser.fftSize=64;
+    src.connect(analyser);analyser.connect(vizAC.destination);
+    vizData=new Uint8Array(analyser.frequencyBinCount);
+  }catch(e){vizFail=true;}
+}
+function drawViz(){
+  cancelAnimationFrame(vizRaf);
+  const cv=document.getElementById('viz'),g=cv.getContext('2d');
+  function frame(){
+    if(!S.playing||!mediaOn()||V.mediaKind==='video'){g.clearRect(0,0,cv.width,cv.height);return;}
+    const W=cv.width=cv.clientWidth*2,H=cv.height=cv.clientHeight*2;
+    g.clearRect(0,0,W,H);
+    const N=26,bw=W/N;let v;
+    if(analyser){analyser.getByteFrequencyData(vizData);}
+    for(let i=0;i<N;i++){
+      if(analyser)v=vizData[Math.floor(i*vizData.length/N)]/255;
+      else v=0.22+0.18*Math.abs(Math.sin(S.t*2.6+i*1.35));
+      const h=Math.max(6,v*H*0.52);
+      g.fillStyle=i%2?'rgba(15,118,110,.50)':'rgba(255,209,102,.38)';
+      g.fillRect(i*bw+bw*0.3,H*0.82-h,bw*0.4,h);
+    }
+    vizRaf=requestAnimationFrame(frame);
+  }
+  vizRaf=requestAnimationFrame(frame);
+}
 function curSub(){return SUBS.findIndex(u=>S.t>=u.s&&S.t<u.e);}
-function seek(t){S.t=Math.max(0,Math.min(DUR,t));syncUI(true);}
+function seek(t){S.t=Math.max(0,Math.min(DUR,t));if(mediaOn())AUD.currentTime=S.t;syncUI(true);}
 function seekFlash(t){
   seek(t);
   const i=curSub();if(i<0)return;
@@ -1003,11 +1060,22 @@ function seekFlash(t){
 function playPause(){S.playing?pause():play();}
 function play(){
   S.playing=true;$('#playIco').innerHTML='<path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/>';
-  S.timer=setInterval(()=>{S.t+=0.25;if(S.t>=DUR){S.t=DUR;pause();}syncUI();},250);
+  if(mediaOn()){
+    initViz();
+    if(vizAC&&vizAC.state==='suspended')vizAC.resume();
+    if(Math.abs(AUD.currentTime-S.t)>0.4)AUD.currentTime=S.t;
+    AUD.play().catch(()=>{V._mediaFail=true;$('#stageBadge').textContent='音频不可用 · 模拟播放';});
+  }
+  S.timer=setInterval(()=>{
+    S.t=mediaOn()?AUD.currentTime:S.t+0.25;
+    if(S.t>=DUR){S.t=DUR;pause();}
+    syncUI();
+  },250);
+  drawViz();
 }
 function pause(){
   S.playing=false;$('#playIco').innerHTML='<path d="M8 5.5v13l11-6.5z"/>';
-  clearInterval(S.timer);
+  clearInterval(S.timer);AUD.pause();
 }
 let lastSubIdx=-1;
 function syncUI(force){
