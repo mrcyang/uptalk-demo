@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Uptalk 移动端 Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* ============ 设计令牌（单主题：设备展示台，App 内为浅色 UI） ============ */
+:root{
+  --bg:#F4F6F8; --card:#FFFFFF; --ink:#17212B; --ink2:#55616E; --ink3:#8B95A1;
+  --line:#E6EAEF; --line2:#EFF2F5;
+  --brand:#0F766E; --brand-deep:#0B5D57; --brand-tint:#E7F4F2; --brand-tint2:#D5EDE9;
+  --teach:#0D8A7A; --stud:#C2410C; --stud-tint:#FBEDE5;
+  --g1:#2A78D6; --g2:#4A3AA7; --g3:#12915F; --g4:#B45309; --soc:#8B95A1;
+  --g1t:#E8F1FB; --g2t:#ECE8F7; --g3t:#E4F3EC; --g4t:#F7EEE2; --soct:#EEF1F4;
+  --warn-bg:#FFF4DC; --warn-ink:#8A5B00; --ok:#1A7F37; --ok-tint:#E4F3E9; --danger:#C0392B;
+  --shadow:0 1px 2px rgba(23,33,43,.05),0 4px 14px rgba(23,33,43,.07);
+  --r:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:#10141A;
+  background-image:radial-gradient(720px 480px at 50% 12%, rgba(15,118,110,.16), transparent 62%);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* ============ 手机壳 ============ */
+#phone{position:relative;width:100%;height:100%;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+#deskNote{display:none}
+@media (min-width:560px){
+  #phone{width:394px;height:min(854px,94vh);border-radius:46px;border:9px solid #23272E;box-shadow:0 30px 80px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05)}
+  #deskNote{display:block;color:#7C8794;font-size:12.5px;letter-spacing:.02em}
+  #deskNote b{color:#AEB8C4;font-weight:600}
+}
+#app{position:relative;flex:1;overflow:hidden}
+
+/* ============ 屏幕与导航 ============ */
+.scr{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:1}
+.scr.on{display:flex}
+.scr.push{z-index:6;transform:translateX(12%);opacity:0;transition:transform .22s ease,opacity .22s ease}
+.scr.push.in{transform:none;opacity:1}
+.hd{flex-shrink:0;padding:14px 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg)}
+.hd .ttl{font-size:19px;font-weight:700;letter-spacing:-.01em;flex:1}
+.hd .sub-ttl{font-size:16px;font-weight:650;flex:1;text-align:center;padding-right:38px}
+.hd.line{border-bottom:1px solid var(--line)}
+.backBtn{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--card);box-shadow:var(--shadow)}
+.iconBtn{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--card);box-shadow:var(--shadow);position:relative}
+.iconBtn .dot{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--stud);border:1.5px solid #fff}
+.body{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
+.body::-webkit-scrollbar{display:none}
+
+#tabbar{flex-shrink:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px calc(10px + env(safe-area-inset-bottom,0px))}
+#tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--ink3);padding:4px 0;border-radius:10px}
+#tabbar button.on{color:var(--brand)}
+#tabbar svg{width:23px;height:23px}
+#tabbar .stroke{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============ 通用组件 ============ */
+.card{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);margin-top:12px}
+.secLabel{font-size:12px;font-weight:600;color:var(--ink3);letter-spacing:.04em;margin:18px 2px 0}
+.rowLink{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:13px 2px;border-bottom:1px solid var(--line2);font-size:14.5px}
+.rowLink:last-child{border-bottom:none}
+.rowLink .grow{flex:1}
+.rowLink .meta{font-size:12px;color:var(--ink3)}
+.chev{color:#C3CAD3;flex-shrink:0}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px}
+.pill.brand{background:var(--brand-tint);color:var(--brand-deep)}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.pill.ok{background:var(--ok-tint);color:var(--ok)}
+.pill.mut{background:var(--soct);color:var(--ink2)}
+.pill.g1{background:var(--g1t);color:var(--g1)} .pill.g2{background:var(--g2t);color:var(--g2)}
+.pill.g3{background:var(--g3t);color:var(--g3)} .pill.g4{background:var(--g4t);color:var(--g4)}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:13px;border-radius:13px;background:var(--brand);color:#fff;font-size:15px;font-weight:600;transition:filter .15s}
+.btn:active{filter:brightness(.92)}
+.btn.ghost{background:var(--brand-tint);color:var(--brand-deep)}
+.btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px}
+.btn.line{background:var(--card);color:var(--ink2);box-shadow:inset 0 0 0 1.5px var(--line)}
+.tChip{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--brand-deep);background:var(--brand-tint);border-radius:7px;padding:2px 7px;cursor:pointer;vertical-align:1px}
+.tChip::before{content:"▶";font-size:8px}
+.num{font-variant-numeric:tabular-nums}
+.note{font-size:11.5px;color:var(--ink3);line-height:1.6;margin-top:10px}
+.demoTag{display:inline-flex;font-size:10px;font-weight:600;color:var(--warn-ink);background:var(--warn-bg);border-radius:6px;padding:2px 7px;letter-spacing:.05em}
+
+/* 进度条 */
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:3px;background:var(--brand);transition:width .3s}
+.prog.working i{background:repeating-linear-gradient(-45deg,var(--g4),var(--g4) 6px,#D98E3B 6px,#D98E3B 12px);animation:slide 1.2s linear infinite}
+@keyframes slide{to{background-position:17px 0}}
+
+/* ============ 首页 ============ */
+.logo{font-size:21px;font-weight:800;letter-spacing:-.03em;color:var(--brand-deep);flex:1}
+.logo i{font-style:normal;color:var(--stud)}
+.goalCard{background:linear-gradient(135deg,#0F766E,#0B5D57);color:#fff;border-radius:var(--r);padding:16px 15px;margin-top:12px;box-shadow:var(--shadow)}
+.goalCard .lb{font-size:11px;opacity:.75;letter-spacing:.06em;font-weight:600}
+.goalCard .gname{font-size:19px;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.goalCard .gname .pill{background:rgba(255,255,255,.16);color:#fff}
+.goalCard .sign{font-size:12.5px;opacity:.85;margin-top:7px;line-height:1.55}
+.goalCard .gfoot{display:flex;align-items:center;gap:8px;margin-top:12px}
+.goalCard .gfoot button{background:rgba(255,255,255,.14);color:#fff;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px}
+.homeItem{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:12px 0;border-bottom:1px solid var(--line2)}
+.homeItem:last-child{border-bottom:none}
+.thumb{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.homeItem .t1{font-size:14.5px;font-weight:600}
+.homeItem .t2{font-size:12px;color:var(--ink3);margin-top:2px}
+
+/* ============ 学习 ============ */
+.courseCard{position:relative;background:linear-gradient(140deg,#153E52,#0F5A57 70%,#12684F);color:#fff;border-radius:var(--r);padding:16px 15px;margin-top:12px;overflow:hidden;text-align:left;width:100%;box-shadow:var(--shadow)}
+.courseCard .cc-k{font-size:10.5px;font-weight:700;letter-spacing:.14em;opacity:.66}
+.courseCard .cc-t{font-size:18px;font-weight:700;margin-top:5px}
+.courseCard .cc-m{font-size:12px;opacity:.8;margin-top:4px}
+.courseCard .prog{background:rgba(255,255,255,.18);margin-top:12px}
+.courseCard .prog i{background:#FFD166}
+.stratCard{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border-radius:13px;padding:11px 12px;box-shadow:var(--shadow);margin-top:8px}
+.stratCard .sc-i{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.stratCard .sc-n{font-size:14px;font-weight:650}
+.stratCard .sc-e{font-size:11px;color:var(--ink3);margin-top:1px}
+.goalHead{display:flex;align-items:center;gap:7px;margin:16px 2px 2px;font-size:12.5px;font-weight:700}
+.goalHead::before{content:"";width:8px;height:8px;border-radius:3px;background:var(--gc)}
+.goalHead em{font-style:normal;font-weight:500;color:var(--ink3);font-size:11px}
+.unitRow{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:12px 2px;border-bottom:1px solid var(--line2)}
+.unitRow:last-child{border-bottom:none}
+.unitRow .ustat{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700}
+.unitRow.done .ustat{background:var(--ok-tint);color:var(--ok)}
+.unitRow.now .ustat{background:var(--brand);color:#fff}
+.unitRow.todo .ustat{background:var(--line);color:var(--ink3)}
+.unitRow .un{font-size:14.5px;font-weight:600}
+.unitRow.todo .un{color:var(--ink2);font-weight:500}
+.unitRow .um{font-size:11.5px;color:var(--ink3);margin-top:1px}
+.quizOpt{display:block;width:100%;text-align:left;font-size:13.5px;padding:11px 12px;border-radius:11px;background:var(--bg);margin-top:8px;border:1.5px solid transparent}
+.quizOpt.right{border-color:var(--ok);background:var(--ok-tint);color:var(--ok);font-weight:600}
+.quizOpt.wrong{border-color:#E5B7B0;background:#FBEDEB;color:var(--danger)}
+
+/* ============ 模拟播放器 ============ */
+.player{flex-shrink:0;background:#101722;position:relative}
+.stage{position:relative;aspect-ratio:16/8.2;background:
+  radial-gradient(340px 150px at 50% 108%, rgba(15,118,110,.32), transparent 70%),
+  linear-gradient(165deg,#1B2A3E 0%,#131E2E 60%,#101722 100%);overflow:hidden}
+.stage .wm{position:absolute;top:8px;left:12px;font-size:9px;letter-spacing:.16em;color:rgba(255,255,255,.34);font-weight:700}
+.stage .demo{position:absolute;top:8px;right:12px;font-size:9px;color:#FFD166;background:rgba(0,0,0,.4);padding:2px 7px;border-radius:6px;letter-spacing:.08em}
+.figs{position:absolute;left:0;right:0;bottom:44px;display:flex;justify-content:center;gap:20px}
+.fig{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.5;transform:scale(.94);transition:all .25s}
+.fig .fc{width:40px;height:40px;border-radius:50%;background:#2C3A50;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid transparent}
+.fig .fn{font-size:9.5px;color:#B9C4D6}
+.fig.talk{opacity:1;transform:scale(1.08)}
+.fig.talk .fc{border-color:#FFD166;box-shadow:0 0 16px rgba(255,209,102,.45);animation:pulse .9s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.osd{position:absolute;left:0;right:0;bottom:6px;text-align:center;padding:0 14px}
+.osd span{display:inline-block;background:rgba(0,0,0,.62);color:#fff;font-size:12px;line-height:1.5;padding:4px 10px;border-radius:8px;max-width:100%}
+.ctrl{display:flex;align-items:center;gap:9px;padding:8px 12px;background:#0C1119}
+.playBtn{width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.playBtn svg{width:14px;height:14px;fill:#fff}
+.barWrap{flex:1;height:20px;display:flex;align-items:center;cursor:pointer;position:relative}
+.bar{width:100%;height:4.5px;background:#2B3648;border-radius:3px;position:relative}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--brand);border-radius:3px;width:0%}
+.bar .mk{position:absolute;top:-2.5px;width:4px;height:9.5px;border-radius:2px;transform:translateX(-2px);opacity:.9}
+.tm{font-size:10.5px;color:#8A96AB;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* ============ 分析工作台 ============ */
+.aTabs{display:flex;gap:7px;padding:10px 14px 8px;overflow-x:auto;flex-shrink:0;background:var(--bg)}
+.aTabs::-webkit-scrollbar{display:none}
+.aTabs button{flex-shrink:0;font-size:13px;font-weight:600;color:var(--ink2);background:var(--card);border-radius:99px;padding:7px 14px;box-shadow:var(--shadow)}
+.aTabs button.on{background:var(--ink);color:#fff}
+.aPane{display:none}
+.aPane.on{display:block}
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.stat{background:var(--card);border-radius:13px;padding:11px 12px;box-shadow:var(--shadow)}
+.stat .sv{font-size:21px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .sv small{font-size:11.5px;font-weight:600;color:var(--ink3);margin-left:2px}
+.stat .sk{font-size:11px;color:var(--ink3);margin-top:2px}
+.talkBar{display:flex;height:26px;border-radius:8px;overflow:hidden;gap:2px;margin-top:10px}
+.talkBar i{display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#fff;font-weight:700;font-style:normal;border-radius:4px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px}
+.legend b{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2);font-weight:500}
+.legend b::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--lc)}
+.obs{padding:11px 0;border-bottom:1px solid var(--line2);font-size:13.5px;line-height:1.65}
+.obs:last-child{border-bottom:none}
+.obs .ob-k{font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--ink3)}
+.aptRow{display:flex;align-items:center;gap:9px;margin-top:9px}
+.aptRow .an{width:88px;font-size:12px;font-weight:600;flex-shrink:0;text-align:right;color:var(--ink2)}
+.aptRow .ab{flex:1;height:15px;position:relative}
+.aptRow .ab i{position:absolute;left:0;top:1.5px;bottom:1.5px;border-radius:4px;min-width:4px}
+.aptRow .ac{width:20px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.tl{position:relative;height:56px;margin-top:12px;background:var(--bg);border-radius:10px}
+.tl .axis{position:absolute;left:10px;right:10px;top:50%;height:2px;background:var(--line);border-radius:1px}
+.tl .tlm{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;transform:translate(-6.5px,-6.5px);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.22);cursor:pointer}
+.tl .tick{position:absolute;top:calc(50% + 12px);font-size:9.5px;color:var(--ink3);font-variant-numeric:tabular-nums;transform:translateX(-50%)}
+.evCard{background:var(--card);border-radius:13px;padding:12px;box-shadow:var(--shadow);margin-top:10px;scroll-margin:60px}
+.evCard.hi{box-shadow:0 0 0 2px var(--brand),var(--shadow)}
+.evCard .ev-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.evCard .conf{margin-left:auto;font-size:10.5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.evCard .q{font-size:13.5px;line-height:1.6;margin-top:8px}
+.evCard .cx{font-size:12px;color:var(--ink2);margin-top:6px;padding-left:9px;border-left:2.5px solid var(--line);line-height:1.55}
+.evCard .ev-f{display:flex;gap:7px;margin-top:10px;align-items:center}
+.evCard .ev-f .spacer{flex:1}
+.miniBtn{font-size:12px;font-weight:600;padding:6.5px 12px;border-radius:9px;background:var(--bg);color:var(--ink2)}
+.miniBtn.on{background:var(--ok-tint);color:var(--ok)}
+.corrTag{font-size:10.5px;color:var(--g2);background:var(--g2t);border-radius:6px;padding:2px 7px;font-weight:600}
+
+/* 词云 */
+.seg{display:flex;background:var(--line2);border-radius:11px;padding:3px;margin-top:12px}
+.seg button{flex:1;font-size:13px;font-weight:600;padding:8px 0;border-radius:9px;color:var(--ink2)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.cloud{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px 13px;padding:18px 6px;line-height:1}
+.cloud button{font-weight:650;letter-spacing:.01em;transition:transform .12s}
+.cloud button:active{transform:scale(1.12)}
+.swRow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--ink2)}
+.sw{width:40px;height:24px;border-radius:99px;background:var(--line);position:relative;transition:background .18s;flex-shrink:0}
+.sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .18s}
+.sw.on{background:var(--brand)}
+.sw.on::after{left:18px}
+
+/* 结构 */
+.band{margin-top:12px;border-radius:10px;overflow:hidden;background:var(--bg)}
+.band svg{display:block;width:100%}
+.seqRow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+.seqRow:last-child{border-bottom:none}
+.seqRow b{font-variant-numeric:tabular-nums;font-weight:700}
+
+/* AI 对话 */
+.chatWrap{display:flex;flex-direction:column;min-height:100%}
+.chat{flex:1;display:flex;flex-direction:column;gap:10px;padding-top:12px}
+.cm{max-width:88%;font-size:13.5px;line-height:1.68;padding:10px 13px;border-radius:4px 14px 14px 14px;background:var(--card);box-shadow:var(--shadow);white-space:pre-line}
+.cm.me{align-self:flex-end;background:var(--brand);color:#fff;border-radius:14px 4px 14px 14px}
+.cm .aiTag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;border-radius:5px;padding:1.5px 6px;margin-right:4px;vertical-align:1.5px}
+.cm .aiTag.d{background:var(--g1t);color:var(--g1)}
+.cm .aiTag.i{background:var(--g2t);color:var(--g2)}
+.cm .aiTag.s{background:var(--soct);color:var(--ink2)}
+.sugg{display:flex;gap:7px;flex-wrap:wrap;padding:12px 0 4px}
+.sugg button{font-size:12.5px;color:var(--brand-deep);background:var(--brand-tint);border-radius:99px;padding:7px 13px;font-weight:600}
+.typing{display:inline-flex;gap:4px;padding:4px 2px}
+.typing i{width:6px;height:6px;border-radius:50%;background:#AAB4C0;animation:tp 1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes tp{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.chatIn{position:sticky;bottom:0;display:flex;gap:8px;padding:10px 0 6px;background:linear-gradient(transparent,var(--bg) 30%)}
+.chatIn input{flex:1;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:14px;font-family:inherit;outline:none;color:var(--ink)}
+.chatIn input:focus{border-color:var(--brand)}
+.chatIn button{width:44px;border-radius:12px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* 反思 */
+.refQ{margin-top:14px}
+.refQ .rq-t{font-size:13.5px;font-weight:700}
+.refQ .rq-h{font-size:11px;color:var(--ink3);margin-top:2px}
+.refQ textarea{width:100%;margin-top:8px;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:13.5px;font-family:inherit;line-height:1.6;resize:none;outline:none;color:var(--ink)}
+.refQ textarea:focus{border-color:var(--brand)}
+.evChips{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.evChip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);border-radius:9px;padding:5px 9px;color:var(--ink2)}
+.evChip i{width:7px;height:7px;border-radius:2.5px;font-style:normal}
+
+/* ============ 工作区 ============ */
+.spCard{width:100%;text-align:left;background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);margin-top:12px;display:flex;gap:12px;align-items:center}
+.spAva{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#2A78D6,#4A3AA7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:800;flex-shrink:0}
+.mRow{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line2)}
+.mRow:last-child{border-bottom:none}
+.ava{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.cmt{padding:11px 0;border-bottom:1px solid var(--line2)}
+.cmt:last-child{border-bottom:none}
+.cmt .ch{display:flex;align-items:center;gap:8px}
+.cmt .cn{font-size:12.5px;font-weight:700}
+.cmt .ct{font-size:10.5px;color:var(--ink3)}
+.cmt .cb{font-size:13.5px;line-height:1.65;margin-top:5px}
+
+/* ============ 底部弹层 / Toast ============ */
+#dim{position:absolute;inset:0;background:rgba(13,20,28,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+#dim.on{opacity:1;pointer-events:auto}
+#sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(102%);transition:transform .26s cubic-bezier(.3,.9,.3,1);z-index:41;max-height:78%;overflow-y:auto}
+#sheet.on{transform:none}
+#sheet .grab{width:38px;height:4.5px;border-radius:3px;background:var(--line);margin:2px auto 12px}
+#toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);background:rgba(20,28,38,.94);color:#fff;font-size:13px;padding:10px 16px;border-radius:12px;opacity:0;transition:all .25s;z-index:60;max-width:82%;text-align:center;pointer-events:none;line-height:1.5}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.shHead{font-size:16.5px;font-weight:700;margin-bottom:4px}
+.shSub{font-size:12px;color:var(--ink3);line-height:1.6}
+.radio{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 2px;border-bottom:1px solid var(--line2);font-size:14px}
+.radio:last-child{border-bottom:none}
+.radio .rdot{width:19px;height:19px;border-radius:50%;border:2px solid #C6CDD6;flex-shrink:0}
+.radio.on .rdot{border-color:var(--brand);border-width:6px}
+.flash{animation:flash 1.3s}
+@keyframes flash{0%,55%{background:var(--brand-tint)}100%{background:transparent}}
+
+/* 字幕列表 */
+.subList{padding:2px 0 10px}
+.sub{display:flex;gap:9px;padding:8px 2px;border-radius:10px;cursor:pointer}
+.sub .who{flex-shrink:0;width:30px;height:22px;border-radius:7px;font-size:10.5px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.sub .st{font-size:13.5px;line-height:1.62;color:var(--ink2)}
+.sub .stm{font-size:10px;color:var(--ink3);font-variant-numeric:tabular-nums;margin-top:2px}
+.sub.now{background:var(--card);box-shadow:var(--shadow)}
+.sub.now .st{color:var(--ink);font-weight:550}
+.sub .aptMk{display:inline-flex;font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+</style>
+</head>
+<body>
+
+
+<div id="phone">
+  <div id="app">
+
+    <!-- ================= 首页 ================= -->
+    <section class="scr on" id="scr-home">
+      <div class="hd">
+        <div class="logo">uptalk<i>.</i></div>
+        <span class="demoTag">DEMO · 演示数据</span>
+        <button class="iconBtn" onclick="toast('通知中心（演示略）')" aria-label="通知"><svg viewBox="0 0 24 24" class="i"><path fill="none" stroke="#55616E" stroke-width="1.7" stroke-linecap="round" d="M6 10a6 6 0 1 1 12 0c0 4 1.6 5.4 1.6 5.4H4.4S6 14 6 10Zm4.5 8.6a1.8 1.8 0 0 0 3 0"/></svg><span class="dot"></span></button>
+      </div>
+      <div class="body">
+        <div class="goalCard">
+          <div class="lb">本周实践目标</div>
+          <div class="gname" id="goalNames"></div>
+          <div class="sign">成功迹象：学生在回答后能主动说出「因为 / 依据是……」</div>
+          <div class="gfoot">
+            <span class="pill" style="background:rgba(255,255,255,.16);color:#fff">下节课 · 8 月 15 日</span>
+            <span style="flex:1"></span>
+            <button onclick="openAnalysis(58,'apt')">查看相关证据</button>
+          </div>
+        </div>
+
+        <div class="secLabel">继续学习</div>
+        <div class="card" style="padding:13px 14px">
+          <button class="homeItem" style="padding:0;border:none" onclick="pushScr('scr-unit')">
+            <div class="thumb" style="background:var(--g4t)"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="#B45309" d="M8 6.8v10.4c0 .8.9 1.3 1.6.9l8.2-5.2c.6-.4.6-1.4 0-1.8L9.6 5.9c-.7-.4-1.6.1-1.6.9Z"/></svg></div>
+            <div class="grow"><div class="t1">单元 4 · 挑战与反例</div><div class="t2">APT 对话策略入门 · 已完成 40%</div></div>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <div class="secLabel">最近分析</div>
+        <div class="card" style="padding:4px 14px">
+          <button class="homeItem" onclick="openAnalysis(0,'overview')">
+            <div class="thumb" style="background:var(--brand-tint)"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg></div>
+            <div class="grow"><div class="t1">分数的初步认识（节选）</div><div class="t2">昨天 · 05:00 · 检测到 9 个 APT 实例</div></div>
+            <span class="pill ok">已完成</span>
+          </button>
+          <div class="homeItem">
+            <div class="thumb" style="background:var(--warn-bg)"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="#8A5B00" stroke-width="1.8" stroke-linecap="round" d="M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+            <div class="grow"><div class="t1">圆的周长 · 第二课时</div><div class="t2">字幕识别中 · 约剩 12 分钟</div>
+              <div class="prog working" style="margin-top:7px;width:88%"><i style="width:65%"></i></div></div>
+            <span class="pill warn num">65%</span>
+          </div>
+        </div>
+
+        <div class="secLabel">工作区动态</div>
+        <div class="card" style="padding:4px 14px">
+          <button class="homeItem" onclick="pushScr('scr-space-home');spaceTab('talk')">
+            <div class="ava" style="background:#4A3AA7">李</div>
+            <div class="grow"><div class="t1" style="font-weight:550">李老师 回复了讨论「提问后的等待时间怎么把握？」</div><div class="t2">三年级数学教研组 · 25 分钟前</div></div>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <div class="card" style="display:flex;gap:11px;align-items:center;background:var(--g2t)">
+          <div style="font-size:20px">💡</div>
+          <div style="flex:1;font-size:12.5px;line-height:1.6;color:#3A2E80">你在上节课成功使用了「挑战」。要不要下节课试试「补充」，把学生的想法串起来？</div>
+          <button class="btn small" style="background:var(--g2);flex-shrink:0" onclick="addGoal('补充',4,this)">加入目标</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 学习 ================= -->
+    <section class="scr" id="scr-learn">
+      <div class="hd"><div class="ttl">学习</div><span class="demoTag">DEMO</span></div>
+      <div class="body">
+        <button class="courseCard" onclick="pushScr('scr-course')">
+          <div class="cc-k">APT 课程</div>
+          <div class="cc-t">APT 对话策略入门</div>
+          <div class="cc-m">8 个单元 · 视频 + 课堂案例 + 理解检查</div>
+          <div class="prog"><i style="width:38%"></i></div>
+          <div class="cc-m" style="margin-top:6px">已完成 3 / 8 · 继续：单元 4「挑战与反例」</div>
+        </button>
+
+        <div class="secLabel">APT 策略库 · v1（8 个话步）</div>
+        <div id="stratList"></div>
+        <p class="note">策略定义与话术来自团队 APT 框架（Michaels et al., 2008 改编）。点击卡片查看定义、话术与常见误区。</p>
+      </div>
+    </section>
+
+    <!-- ================= 分析 ================= -->
+    <section class="scr" id="scr-analyze">
+      <div class="hd"><div class="ttl">分析</div><span class="demoTag">DEMO</span>
+        <button class="iconBtn" onclick="toast('上传流程（演示略）：选择视频 → 填写课堂信息 → 确认隐私授权')" aria-label="上传"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="#0F766E" stroke-width="1.9" stroke-linecap="round" d="M12 16V5m0 0 4 4m-4-4L8 9M5 19h14"/></svg></button>
+      </div>
+      <div class="body">
+        <div class="card" style="padding:13px 14px 4px">
+          <button class="homeItem" onclick="openAnalysis(0,'overview')">
+            <div class="thumb" style="background:var(--brand-tint);font-size:17px">🎬</div>
+            <div class="grow"><div class="t1">分数的初步认识（节选）</div><div class="t2">三年级 · 数学 · 05:00 · 昨天上传</div></div>
+            <span class="pill ok">已完成</span>
+          </button>
+          <div class="homeItem">
+            <div class="thumb" style="background:var(--warn-bg);font-size:17px">🎬</div>
+            <div class="grow"><div class="t1">圆的周长 · 第二课时</div><div class="t2">三年级 · 数学 · 41:32 · 今天上传</div>
+              <div class="prog working" style="margin-top:7px;width:88%"><i style="width:65%"></i></div>
+              <div class="t2" style="margin-top:5px">转码 ✓ → <b style="color:var(--warn-ink)">字幕识别中</b> → 角色分析 → APT 与指标 → 完成</div></div>
+          </div>
+        </div>
+        <p class="note">视频与分析默认<b>仅自己可见</b>。上传需确认你有权使用该课堂录像；处理失败可重试，已完成的部分不受影响。</p>
+      </div>
+    </section>
+
+    <!-- ================= 工作区 ================= -->
+    <section class="scr" id="scr-space">
+      <div class="hd"><div class="ttl">工作区</div><span class="demoTag">DEMO</span></div>
+      <div class="body">
+        <button class="spCard" onclick="pushScr('scr-space-home')">
+          <div class="spAva">数</div>
+          <div style="flex:1">
+            <div style="font-size:15.5px;font-weight:700">三年级数学教研组</div>
+            <div style="font-size:12px;color:var(--ink3);margin-top:3px">3 名成员 · 2 条新动态</div>
+          </div>
+          <span class="pill brand">所有者</span>
+        </button>
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="btn ghost" style="flex:1" onclick="toast('创建工作区（演示略）')">创建工作区</button>
+          <button class="btn line" style="flex:1" onclick="toast('输入邀请码或打开邀请链接即可加入（演示略）')">加入工作区</button>
+        </div>
+        <p class="note">加入工作区<b>不会</b>让成员看到你的私人视频与反思——只有你明确选择分享的内容才对成员可见，且可随时撤销。</p>
+      </div>
+    </section>
+
+    <!-- ================= 我的 ================= -->
+    <section class="scr" id="scr-me">
+      <div class="hd"><div class="ttl">我的</div><span class="demoTag">DEMO</span></div>
+      <div class="body">
+        <div class="card" style="display:flex;gap:13px;align-items:center">
+          <div class="ava" style="width:54px;height:54px;font-size:20px;background:var(--brand)">王</div>
+          <div style="flex:1">
+            <div style="font-size:17px;font-weight:700">王老师</div>
+            <div style="font-size:12px;color:var(--ink3);margin-top:3px">小学数学 · 三年级 · 教龄 6 年</div>
+          </div>
+        </div>
+        <div class="card" style="padding:2px 14px">
+          <button class="rowLink" onclick="toast('目标：追问推理（进行中）· 历史目标 2 个')"><span class="grow">我的实践目标</span><span class="meta" id="goalCount"></span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+          <button class="rowLink" onclick="toast('反思 1 篇（草稿）· 可在分析页继续编辑')"><span class="grow">我的反思</span><span class="meta">1 篇草稿</span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+          <button class="rowLink" onclick="toast('通知设置（演示略）')"><span class="grow">通知设置</span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+          <button class="rowLink" onclick="pushScr('scr-privacy')"><span class="grow">数据与隐私</span><span class="meta">默认私有</span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:700">关于这个 Demo</div>
+          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.1（2026-08-13）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 课程详情 ================= -->
+    <section class="scr push" id="scr-course">
+      <div class="hd line"><button class="backBtn" onclick="popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button><div class="sub-ttl">APT 对话策略入门</div></div>
+      <div class="body">
+        <div class="card" style="padding:6px 14px" id="unitList"></div>
+        <p class="note">完成单元后，可把对应策略一键加入「下一节课实践目标」，并在你的课堂分析里追踪它的出现。</p>
+      </div>
+    </section>
+
+    <!-- ================= 单元学习 ================= -->
+    <section class="scr push" id="scr-unit">
+      <div class="hd line"><button class="backBtn" onclick="popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button><div class="sub-ttl">单元 4 · 挑战与反例</div></div>
+      <div class="body">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="stage" style="aspect-ratio:16/8.4">
+            <div class="wm">UPTALK 学习</div><div class="demo">示例课程视频</div>
+            <div class="figs" style="bottom:40px"><div class="fig talk"><div class="fc">👩‍🏫</div><div class="fn">讲解 · 04:12</div></div></div>
+            <div class="osd"><span>「挑战」不是否定学生，而是给他的想法一个新的检验条件……</span></div>
+          </div>
+          <div class="ctrl"><button class="playBtn" onclick="toast('课程视频播放（演示略）')" aria-label="播放"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+            <div class="barWrap"><div class="bar"><div class="fill" style="width:38%"></div></div></div><div class="tm">04:12 / 11:05</div></div>
+        </div>
+        <div class="card">
+          <div style="font-size:13.5px;font-weight:700">本单元要点</div>
+          <ul style="margin:8px 0 0 18px;font-size:13.5px;line-height:1.9;color:var(--ink2)">
+            <li>挑战 = 反例、极端情况或「总是这样吗？」</li>
+            <li>时机：学生给出一个可检验的断言之后</li>
+            <li>语气指向想法，不指向人</li>
+          </ul>
+          <div style="margin-top:10px"><button class="pill g2" style="cursor:pointer" onclick="openStrategy('challenge')">📎 查看策略卡：挑战 Challenge</button></div>
+        </div>
+        <div class="card">
+          <div style="font-size:13.5px;font-weight:700">理解检查</div>
+          <p style="font-size:13.5px;line-height:1.6;margin-top:6px">学生说：「偶数加偶数一定是偶数。」下面哪句更接近「挑战」？</p>
+          <button class="quizOpt" data-q="w" onclick="quiz(this)">A. 不对，你再想想。</button>
+          <button class="quizOpt" data-q="r" onclick="quiz(this)">B. 总是这样吗？如果其中一个数是 0 呢？</button>
+          <button class="quizOpt" data-q="w2" onclick="quiz(this)">C. 谁来告诉他正确答案？</button>
+          <div class="note" id="quizFb" style="display:none"></div>
+        </div>
+        <button class="btn" style="margin-top:14px" onclick="addGoal('挑战',2,this)">把「挑战」加入下一节课实践目标</button>
+      </div>
+    </section>
+
+    <!-- ================= 分析工作台 ================= -->
+    <section class="scr push" id="scr-detail">
+      <div class="hd line" style="padding:10px 14px 8px">
+        <button class="backBtn" onclick="pause();popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">分数的初步认识（节选）</div>
+          <div style="font-size:10.5px;color:var(--ink3);margin-top:1px">三年级 · 数学 · 05:00 · <span style="color:var(--ok)">仅自己可见</span></div>
+        </div>
+        <span class="demoTag">DEMO</span>
+      </div>
+
+      <div class="player">
+        <div class="stage">
+          <div class="wm">UPTALK</div><div class="demo">模拟课堂画面</div>
+          <div class="figs" id="figs">
+            <div class="fig" data-f="t"><div class="fc">👩‍🏫</div><div class="fn">王老师</div></div>
+            <div class="fig" data-f="s"><div class="fc">🧒</div><div class="fn" id="figStuName">学生</div></div>
+            <div class="fig" data-f="all"><div class="fc">👥</div><div class="fn">全班</div></div>
+          </div>
+          <div class="osd"><span id="osdText">点击播放，字幕与分析将同步</span></div>
+        </div>
+        <div class="ctrl">
+          <button class="playBtn" id="playBtn" onclick="playPause()" aria-label="播放/暂停"><svg viewBox="0 0 24 24" id="playIco"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+          <div class="barWrap" id="barWrap"><div class="bar"><div class="fill" id="barFill"></div><span id="barMks"></span></div></div>
+          <div class="tm"><span id="tmNow" class="num">00:00</span> / 05:00</div>
+        </div>
+      </div>
+
+      <div class="aTabs" id="aTabs">
+        <button data-p="overview" class="on" onclick="aTab('overview')">概览</button>
+        <button data-p="apt" onclick="aTab('apt')">APT 策略</button>
+        <button data-p="cloud" onclick="aTab('cloud')">词云</button>
+        <button data-p="struct" onclick="aTab('struct')">对话结构</button>
+        <button data-p="ai" onclick="aTab('ai')">AI 问答</button>
+        <button data-p="reflect" onclick="aTab('reflect')">反思</button>
+      </div>
+
+      <div class="body" id="detailBody" style="padding-top:0">
+
+        <!-- 概览 -->
+        <div class="aPane on" data-p="overview">
+          <div class="card" style="display:flex;gap:8px;align-items:center;background:var(--ok-tint);box-shadow:none;padding:10px 13px">
+            <span style="font-size:14px">✓</span><span style="font-size:12px;color:var(--ok);line-height:1.5">音频清晰，教师/学生角色识别置信度高；识别结果可在字幕与 APT 卡片中纠正。</span>
+          </div>
+          <div class="statGrid" id="statGrid"></div>
+          <div class="card">
+            <div style="font-size:13.5px;font-weight:700">师生话语占比</div>
+            <div class="talkBar" id="talkBar"></div>
+            <div class="legend"><b style="--lc:var(--teach)">教师</b><b style="--lc:var(--stud)">学生</b><b style="--lc:#C3CAD3">其他/静默</b></div>
+            <p class="note">口径 v1：按字幕时段汇总；重叠语音计入先发言者。</p>
+          </div>
+          <div class="card">
+            <div style="font-size:13.5px;font-weight:700">值得注意的地方</div>
+            <div class="obs"><span class="ob-k">观察 1 · 有证据</span><br>两次<b>追问推理</b>都出现在学生给出答案之后，且都得到了完整说理 <span class="tChip" onclick="seekFlash(58)">00:58</span><span class="tChip" onclick="seekFlash(252)">04:12</span></div>
+            <div class="obs"><span class="ob-k">观察 2 · 有证据</span><br>本节选覆盖<b>全部 4 类</b> APT 目标；合作思考类连续出现 3 次，形成「同意 → 挑战 → 解释他人」的推进链 <span class="tChip" onclick="seekFlash(128)">02:08</span><span class="tChip" onclick="seekFlash(152)">02:32</span><span class="tChip" onclick="seekFlash(178)">02:58</span></div>
+            <p class="note">Uptalk 不输出综合评分——每个结论都可回到课堂原话核验。</p>
+          </div>
+        </div>
+
+        <!-- APT -->
+        <div class="aPane" data-p="apt">
+          <div class="card">
+            <div style="display:flex;align-items:center"><div style="font-size:13.5px;font-weight:700;flex:1">策略分布 <span style="font-weight:500;color:var(--ink3);font-size:11px">检测到的可能实例</span></div><span class="pill mut num" id="aptTotal"></span></div>
+            <div id="aptDist"></div>
+            <div class="legend" id="aptLegend" style="margin-top:12px"></div>
+          </div>
+          <div class="card">
+            <div style="font-size:13.5px;font-weight:700">出现时间轴 <span style="font-weight:500;color:var(--ink3);font-size:11px">点标记可跳转</span></div>
+            <div class="tl" id="aptTl"></div>
+          </div>
+          <div class="card" style="background:var(--brand-tint);box-shadow:none">
+            <div style="font-size:12.5px;line-height:1.65;color:var(--brand-deep)"><b>目标对照</b> · 本课实践目标「追问推理」出现 <b>2 次</b>，两次学生均给出依据 ✓　建议下一步关注：追问后再邀请其他学生回应（补充 / 同意不同意）。</div>
+          </div>
+          <div class="secLabel">证据列表（<span class="num" id="evCount"></span> 条 · 可确认或改正）</div>
+          <div id="evList"></div>
+        </div>
+
+        <!-- 词云 -->
+        <div class="aPane" data-p="cloud">
+          <div class="seg" id="cloudSeg">
+            <button class="on" data-r="t" onclick="cloudRole('t')">教师话语</button>
+            <button data-r="s" onclick="cloudRole('s')">学生话语</button>
+          </div>
+          <div class="card"><div class="cloud" id="cloudBox"></div>
+            <div class="legend" style="justify-content:center"><b style="--lc:var(--g1)">内容主题</b><b style="--lc:var(--g2)">APT 策略词</b><b style="--lc:var(--g3)">思维认知</b><b style="--lc:var(--soc)">课堂社交</b></div>
+          </div>
+          <div class="card" style="padding:10px 14px">
+            <div class="swRow"><span style="flex:1">隐藏课堂社交词（嗯、很好、大家…）</span><button class="sw" id="socSw" onclick="toggleSoc()" aria-label="隐藏课堂社交词"></button></div>
+          </div>
+          <p class="note">字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：按「该角色有效词次」计，分词与停用词表 v1。</p>
+        </div>
+
+        <!-- 结构 -->
+        <div class="aPane" data-p="struct">
+          <div class="card">
+            <div style="font-size:13.5px;font-weight:700">对话轮次时间轴 <span style="font-weight:500;color:var(--ink3);font-size:11px">点色块跳转</span></div>
+            <div class="band" id="bandBox"></div>
+            <div class="legend"><b style="--lc:var(--teach)">教师</b><b style="--lc:var(--stud)">学生</b></div>
+          </div>
+          <div class="statGrid" id="structGrid"></div>
+          <div class="card">
+            <div style="font-size:13.5px;font-weight:700">互动序列</div>
+            <div class="seqRow"><span>教师 → 学生 回应</span><b class="num">12 次</b></div>
+            <div class="seqRow"><span>学生 → 学生 接续（经教师引导）</span><b class="num">3 次</b></div>
+            <div class="seqRow"><span>提问后平均等待</span><b class="num">2.8 秒</b></div>
+            <p class="note">口径 v1：轮次 = 说话角色切换；&lt;1 秒的语气词不计；等待时间 = 问句结束到下一位发言开始。指标口径冻结后不随版本静默变化。</p>
+          </div>
+        </div>
+
+        <!-- AI -->
+        <div class="aPane" data-p="ai">
+          <div class="chatWrap">
+            <div class="card" style="box-shadow:none;background:var(--g1t);padding:10px 13px;font-size:12px;line-height:1.6;color:#1D5495">AI 只依据<b>本视频</b>的字幕、时间戳与分析结果回答，回答会附可点击的时间点；证据不足时会明确说明。</div>
+            <div class="chat" id="chatBox"></div>
+            <div class="sugg" id="suggBox"></div>
+            <div class="chatIn">
+              <input id="chatIn" type="text" placeholder="就这节课的对话提问…" onkeydown="if(event.key==='Enter')sendChat()">
+              <button onclick="sendChat()" aria-label="发送"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M3.4 20.6 21 12 3.4 3.4l2.8 7.1L14 12l-7.8 1.5z"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 反思 -->
+        <div class="aPane" data-p="reflect">
+          <div class="card" style="display:flex;align-items:center;gap:8px;box-shadow:none;background:var(--soct);padding:10px 13px">
+            <span id="refState" class="pill mut">仅自己可见</span>
+            <span style="font-size:11.5px;color:var(--ink2);flex:1;line-height:1.5">反思默认私有；分享给工作区是显式操作，可随时撤销。</span>
+          </div>
+          <div class="refQ"><div class="rq-t">1 · 我注意到什么？</div><div class="rq-h">引用具体片段，而不是整体印象</div>
+            <div class="evChips"><span class="evChip" onclick="seekFlash(152)"><i style="background:var(--g2)"></i>02:32 挑战</span><span class="evChip" onclick="seekFlash(178)"><i style="background:var(--g4)"></i>02:58 引导解释他人</span><button class="evChip" style="color:var(--brand-deep)" onclick="toast('从字幕 / APT 证据 / 图表中选择片段加入（演示略）')">＋ 添加证据</button></div>
+            <textarea rows="3">我挑战「两块不一样大还能叫二分之一吗」之后，没有直接讲结论，而是让学生解释小宇的话，学生说出了「不平均就没有意义」。</textarea></div>
+          <div class="refQ"><div class="rq-t">2 · 我怎样理解它？</div><div class="rq-h">补充模型看不到的课堂背景</div>
+            <textarea rows="2">这个班以前习惯等我给标准答案，这次把解释的机会交回给学生，效果比预想好。</textarea></div>
+          <div class="refQ"><div class="rq-t">3 · 下次我准备尝试什么？</div><div class="rq-h">选一个策略，写出具体话术</div>
+            <textarea rows="2" placeholder="例：在学生说出理由后，追加一句「谁可以在他的想法上再补充？」">在追问之后加一步「补充」：谁可以在他的想法上再补充？</textarea></div>
+          <div class="refQ"><div class="rq-t">4 · 我如何知道有变化？</div><div class="rq-h">写可观察的迹象</div>
+            <textarea rows="2" placeholder="例：至少出现一次学生主动回应同伴观点">至少出现 1 次学生不经我点名、主动接着同伴的观点往下说。</textarea></div>
+          <div style="display:flex;gap:9px;margin-top:16px">
+            <button class="btn ghost" style="flex:1" onclick="toast('草稿已保存（仅自己可见）')">保存草稿</button>
+            <button class="btn" style="flex:1" onclick="openShare()">分享到工作区</button>
+          </div>
+          <button class="btn line" style="margin-top:9px" onclick="addGoal('补充',4,this)">由此创建下节课目标：补充</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 工作区详情 ================= -->
+    <section class="scr push" id="scr-space-home">
+      <div class="hd line"><button class="backBtn" onclick="popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button><div class="sub-ttl">三年级数学教研组</div></div>
+      <div class="aTabs" style="padding-top:8px">
+        <button class="on" data-s="share" onclick="spaceTab('share')">共享库</button>
+        <button data-s="talk" onclick="spaceTab('talk')">讨论</button>
+        <button data-s="member" onclick="spaceTab('member')">成员</button>
+      </div>
+      <div class="body">
+        <div class="sPane on" data-s="share">
+          <div class="card" style="padding:4px 14px">
+            <button class="homeItem" onclick="toast('打开李老师分享的分析节选（演示略）——只读，可评论')">
+              <div class="ava" style="background:#4A3AA7">李</div>
+              <div class="grow"><div class="t1" style="font-weight:600">「圆的认识」分析节选 · 03:24</div><div class="t2">李老师 分享 · 可评论 · 2 天前</div></div>
+              <span class="pill mut">节选</span>
+            </button>
+            <div class="homeItem">
+              <div class="ava" style="background:var(--brand)">王</div>
+              <div class="grow"><div class="t1" style="font-weight:600">我的反思 ·「分数的初步认识」</div><div class="t2">我 分享 · 全组可评论 · <span id="shareTime">未分享</span></div></div>
+              <button class="miniBtn" id="revokeBtn" onclick="revokeShare()" style="display:none">撤销</button>
+            </div>
+          </div>
+          <p class="note">共享库只保存<b>成员明确分享</b>的内容；撤销分享后，讨论中的引用会同步失效，而不是留下副本。</p>
+        </div>
+        <div class="sPane" data-s="talk" style="display:none">
+          <div class="card">
+            <div style="font-size:14.5px;font-weight:700">提问后的等待时间怎么把握？</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:3px">3 条回复 · 关联「分数的初步认识」</div>
+            <div style="margin-top:6px" id="cmtList">
+              <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:var(--brand)">王</div><span class="cn">王老师（我）</span><span class="ct">昨天 21:40</span></div>
+                <div class="cb">我在 <span class="tChip" onclick="openAnalysis(152,'struct')">02:32</span> 抛出挑战后全班齐answered得很快，感觉他们没真正想。等待时间该怎么把握？</div></div>
+              <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:#4A3AA7">李</div><span class="cn">李老师</span><span class="ct">25 分钟前</span></div>
+                <div class="cb">齐答通常说明问题封闭。可以把「还能叫二分之一吗」改成「谁能举一个不能叫二分之一的例子」，再等 3–5 秒点名。</div></div>
+              <div class="cmt"><div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:#B45309">陈</div><span class="cn">陈老师</span><span class="ct">10 分钟前</span></div>
+                <div class="cb">同意。另外你 <span class="tChip" onclick="openAnalysis(178,'apt')">02:58</span> 让学生解释小宇的话，这一步接得很好，值得保持。</div></div>
+            </div>
+            <div class="chatIn" style="position:static;background:none;padding-top:6px">
+              <input id="cmtIn" type="text" placeholder="回复讨论…" onkeydown="if(event.key==='Enter')sendCmt()">
+              <button onclick="sendCmt()" aria-label="发送"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M3.4 20.6 21 12 3.4 3.4l2.8 7.1L14 12l-7.8 1.5z"/></svg></button>
+            </div>
+          </div>
+          <p class="note">评论可以直接引用视频时间点、APT 证据或图表——讨论围绕课堂证据，而不是空对空。</p>
+        </div>
+        <div class="sPane" data-s="member" style="display:none">
+          <div class="card" style="padding:4px 14px">
+            <div class="mRow"><div class="ava" style="background:var(--brand)">王</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">王老师（我）</div><div style="font-size:11.5px;color:var(--ink3)">小学数学</div></div><span class="pill brand">所有者</span></div>
+            <div class="mRow"><div class="ava" style="background:#4A3AA7">李</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">李老师</div><div style="font-size:11.5px;color:var(--ink3)">小学数学</div></div><span class="pill mut">管理员</span></div>
+            <div class="mRow"><div class="ava" style="background:#B45309">陈</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">陈老师</div><div style="font-size:11.5px;color:var(--ink3)">小学数学</div></div><span class="pill mut">成员</span></div>
+          </div>
+          <button class="btn ghost" style="margin-top:12px" onclick="openInvite()">邀请成员</button>
+          <p class="note">管理员可管理成员与共享秩序，但<b>不能</b>查看成员未分享的私人内容；成员退出后立即失去工作区授权。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 数据与隐私 ================= -->
+    <section class="scr push" id="scr-privacy">
+      <div class="hd line"><button class="backBtn" onclick="popScr()" aria-label="返回"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="none" stroke="#17212B" stroke-width="2" stroke-linecap="round" d="M15 5l-7 7 7 7"/></svg></button><div class="sub-ttl">数据与隐私</div></div>
+      <div class="body">
+        <div class="card">
+          <div style="font-size:13.5px;font-weight:700">🔒 默认私有</div>
+          <p class="note" style="margin-top:5px">课堂视频、分析结果、AI 对话与反思默认仅你可见。加入工作区不会自动共享任何内容。</p>
+        </div>
+        <div class="card">
+          <div style="font-size:13.5px;font-weight:700">✋ 分享是显式、可撤销的授权</div>
+          <p class="note" style="margin-top:5px">你可以选择分享完整分析、指定片段或单篇反思，并随时撤销；每次授权都有记录，页面上始终能看到「当前谁能看见」。</p>
+        </div>
+        <div class="card">
+          <div style="font-size:13.5px;font-weight:700">🗑 删除即联动删除</div>
+          <p class="note" style="margin-top:5px">删除视频会一并删除其字幕、分析结果、AI 对话与已授权的分享引用。</p>
+        </div>
+        <div class="card" style="padding:2px 14px">
+          <button class="rowLink" onclick="toast('导出个人数据（演示略）')"><span class="grow">导出我的数据</span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+          <button class="rowLink" onclick="toast('同意记录：课堂数据处理同意 v1.0 · 2026-08-13')"><span class="grow">我的同意记录</span><span class="meta">v1.0</span><svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /app -->
+
+  <div id="dim" onclick="closeSheet()"></div>
+  <div id="sheet" role="dialog"></div>
+  <div id="toast"></div>
+
+  <nav id="tabbar">
+    <button data-t="scr-home" class="on" onclick="showTab('scr-home')"><svg viewBox="0 0 24 24"><path class="stroke" d="M4 11.5 12 4l8 7.5M6 10v9h12v-9"/></svg>首页</button>
+    <button data-t="scr-learn" onclick="showTab('scr-learn')"><svg viewBox="0 0 24 24"><path class="stroke" d="M12 6.5C10 4.8 7 4.5 4.5 5.2V18c2.5-.7 5.5-.4 7.5 1.3 2-1.7 5-2 7.5-1.3V5.2C17 4.5 14 4.8 12 6.5Zm0 0V19"/></svg>学习</button>
+    <button data-t="scr-analyze" onclick="showTab('scr-analyze')"><svg viewBox="0 0 24 24"><path class="stroke" d="M4 19h16M7 16v-5m5 5V7m5 9v-3"/></svg>分析</button>
+    <button data-t="scr-space" onclick="showTab('scr-space')"><svg viewBox="0 0 24 24"><path class="stroke" d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8c.5-3 2.6-4.5 5-4.5s4.5 1.5 5 4.5m1-13.3a3 3 0 0 1 0 5.8m2.2 2.6c1.4.8 2.4 2.2 2.8 4"/></svg>工作区</button>
+    <button data-t="scr-me" onclick="showTab('scr-me')"><svg viewBox="0 0 24 24"><path class="stroke" d="M12 11a3.2 3.2 0 1 0 0-6.4A3.2 3.2 0 0 0 12 11Zm-6.5 8c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/></svg>我的</button>
+  </nav>
+</div>
+
+<div id="deskNote"><b>uptalk 移动端 Demo</b> · 桌面可直接点击操作，手机打开体验最佳</div>
+
+<script>
+/* ================= 数据 ================= */
+const APT = {
+  say_more:{cn:'多说',en:'Say More',g:1},
+  revoice:{cn:'重述确认',en:'Revoice',g:1},
+  press:{cn:'追问推理',en:'Press for Reasoning',g:2},
+  challenge:{cn:'挑战',en:'Challenge',g:2},
+  restate:{cn:'重新阐述',en:'Restate',g:3},
+  agree:{cn:'同意/不同意',en:'Agree/Disagree',g:4},
+  add_on:{cn:'补充',en:'Add On',g:4},
+  explain:{cn:'引导解释他人',en:'Explain Other',g:4},
+};
+const GOALS = {1:'详细阐述',2:'推理',3:'倾听',4:'合作思考'};
+const GC = {1:'var(--g1)',2:'var(--g2)',3:'var(--g3)',4:'var(--g4)'};
+const GT = {1:'var(--g1t)',2:'var(--g2t)',3:'var(--g3t)',4:'var(--g4t)'};
+
+const STRAT_DETAIL = {
+  say_more:{talk:['可以再多说一点吗？','你能举一个例子吗？'],pos:'学生：「我觉得这两个图形是一样的。」→ 教师：「能不能再展开说说？」',neg:'「大声一点再说一遍」是听不清，不是让学生扩展观点。'},
+  revoice:{talk:['让我看看是否理解了你的意思，你是说……对吗？'],pos:'教师改述学生的推理，并停下来等学生确认或修正。',neg:'重复学生答案后马上自己评价「对，很好」——没有留出验证空间。'},
+  press:{talk:['你为什么这么认为？','你的依据是什么？'],pos:'学生给出答案后：「你是怎么得出来的？」',neg:'「你为什么迟到？」是管理性质的为什么，不是追问学术推理。'},
+  challenge:{talk:['总是这样吗？','如果分母为 0 会发生什么？'],pos:'学生：「乘法让数变大。」→ 教师：「总是这样吗？乘 0.5 呢？」',neg:'「不对，再想想」只是否定，没有给出可检验的挑战点。'},
+  restate:{talk:['谁能重复一下他刚才说的话，或用自己的话表达出来？','你的搭档说什么了？'],pos:'学生 A 发言后：「谁能用自己的话说说 A 的想法？」',neg:'让学生跟读、背诵教师讲的内容——对象必须是同学的观点。'},
+  agree:{talk:['你同意不同意他的观点？为什么？'],pos:'「你同意小明的说法吗？说说理由。」',neg:'「同意的举手」式表决没有推理要求，属边界案例。'},
+  add_on:{talk:['谁可以补充他刚提出的想法？','谁能把这个想法再往前推一步？'],pos:'「谁能在小红的思路上再补充一点？」',neg:'「还有其他答案吗？」是征集新答案，不是延伸已有想法。'},
+  explain:{talk:['谁能解释一下他这句话的意思？','你认为他为什么会这么说？'],pos:'「谁能解释一下小李为什么这么算？」',neg:'教师自己代学生解释（若求证是重述确认，否则是讲解）。'},
+};
+
+/* 字幕：s起 e止 w角色(t师/s生/all) n名 x文本 a=APT c=置信度 */
+const SUBS = [
+ {s:0,e:14,w:'t',n:'王老师',x:'同学们，中秋节快到了，老师带来一块月饼。要把它分给两位同学，怎么分才公平？'},
+ {s:14,e:22,w:'s',n:'小宇',x:'从中间切开，一人一半，这样才公平。'},
+ {s:22,e:34,w:'t',n:'王老师',x:'让我看看是否理解了你的意思——你是说要平均分成两块，每人拿到的一样大，对吗？',a:'revoice',c:92},
+ {s:34,e:38,w:'s',n:'小宇',x:'对，就是每块一样大。'},
+ {s:38,e:50,w:'t',n:'王老师',x:'好。那这个「一半」，能不能用一个数来表示？谁来试试？'},
+ {s:50,e:58,w:'s',n:'小雨',x:'我觉得可以写成二分之一。'},
+ {s:58,e:68,w:'t',n:'王老师',x:'你为什么认为是二分之一？你的依据是什么？',a:'press',c:95},
+ {s:68,e:82,w:'s',n:'小雨',x:'因为把月饼平均分成了 2 份，每人拿其中 1 份，就是 2 份里面的 1 份。'},
+ {s:82,e:92,w:'t',n:'王老师',x:'能再多说一点吗？比如举一个生活里的例子。',a:'say_more',c:88},
+ {s:92,e:104,w:'s',n:'小雨',x:'比如一张纸对折剪开，每一张就是原来这张纸的二分之一。'},
+ {s:104,e:116,w:'t',n:'王老师',x:'谁能用自己的话，说说小雨刚才的想法？',a:'restate',c:90},
+ {s:116,e:128,w:'s',n:'小航',x:'她的意思是，只要平均分成两份，每份就是二分之一，跟分的是月饼还是纸没有关系。'},
+ {s:128,e:140,w:'t',n:'王老师',x:'大家同意小航的说法吗？为什么？',a:'agree',c:93},
+ {s:140,e:152,w:'s',n:'小柔',x:'我同意，因为分数看的是分了几份、拿了几份，不是分的什么东西。'},
+ {s:152,e:166,w:'t',n:'王老师',x:'老师要挑战大家一下——如果切出来的两块不一样大，还能叫二分之一吗？',a:'challenge',c:85},
+ {s:166,e:178,w:'s',n:'小宇',x:'不能！那样就不公平了，必须平均分。'},
+ {s:178,e:190,w:'t',n:'王老师',x:'谁能解释一下，小宇为什么强调「必须平均分」？',a:'explain',c:87},
+ {s:190,e:204,w:'s',n:'小雨',x:'因为不平均的话两份就不一样多，「一半」就没有意义了。'},
+ {s:204,e:216,w:'t',n:'王老师',x:'谁可以在这个想法上再补充？如果平均分成 4 份呢？',a:'add_on',c:82},
+ {s:216,e:228,w:'s',n:'小航',x:'那每份就是四分之一。平均分成几份，每份就是几分之一。'},
+ {s:228,e:244,w:'t',n:'王老师',x:'说得真好。现在拿出练习纸，把它平均分成 4 份，涂出其中的 1 份。'},
+ {s:244,e:252,w:'all',n:'全班',x:'（学生动手折纸、涂色）'},
+ {s:252,e:264,w:'t',n:'王老师',x:'小柔，你涂了这一份。为什么说它是这张纸的四分之一？',a:'press',c:91},
+ {s:264,e:278,w:'s',n:'小柔',x:'因为我把纸平均折成了 4 份，涂的是其中的 1 份。'},
+ {s:278,e:290,w:'t',n:'王老师',x:'所以不管涂哪一份，都是这张纸的四分之一。大家观察到了什么？'},
+ {s:290,e:300,w:'s',n:'小雨',x:'4 份里的每 1 份都一样大，都是四分之一。'},
+];
+const DUR = 300;
+
+/* 词云：w词 f频次 c类别(c内容 a策略词 m思维 soc社交) */
+const CLOUD = {
+ t:[{w:'平均分',f:9,c:'c'},{w:'份',f:8,c:'c'},{w:'二分之一',f:7,c:'c'},{w:'为什么',f:6,c:'a'},{w:'月饼',f:5,c:'c'},{w:'四分之一',f:5,c:'c'},{w:'大家',f:5,c:'soc'},{w:'想法',f:4,c:'m'},{w:'同意',f:4,c:'a'},{w:'一半',f:4,c:'c'},{w:'很好',f:4,c:'soc'},{w:'依据',f:3,c:'a'},{w:'补充',f:3,c:'a'},{w:'解释',f:3,c:'a'},{w:'例子',f:3,c:'a'},{w:'涂',f:3,c:'c'},{w:'同学们',f:3,c:'soc'},{w:'观察',f:2,c:'m'},{w:'公平',f:2,c:'c'},{w:'表示',f:2,c:'m'},{w:'练习纸',f:2,c:'c'},{w:'拿出',f:2,c:'soc'}],
+ s:[{w:'份',f:7,c:'c'},{w:'平均分',f:6,c:'c'},{w:'二分之一',f:5,c:'c'},{w:'一样大',f:4,c:'c'},{w:'四分之一',f:4,c:'c'},{w:'月饼',f:3,c:'c'},{w:'一份',f:3,c:'c'},{w:'因为',f:5,c:'m'},{w:'公平',f:3,c:'c'},{w:'纸',f:3,c:'c'},{w:'对折',f:2,c:'c'},{w:'剪开',f:2,c:'c'},{w:'同意',f:2,c:'a'},{w:'意思',f:2,c:'m'},{w:'意义',f:1,c:'m'},{w:'老师',f:2,c:'soc'}],
+};
+const CCOL = {c:'var(--g1)',a:'var(--g2)',m:'var(--g3)',soc:'var(--soc)'};
+const CNAME = {c:'内容主题',a:'APT 策略词',m:'思维认知',soc:'课堂社交'};
+
+/* AI 脚本应答 */
+const AI_SUGG = ['我的追问效果如何？','哪个环节学生参与最充分？','我的等待时间够吗？'];
+function aiAnswer(q){
+  if(/追问|press|推理/.test(q)) return {t:`[[d]]本节选检测到 2 次追问推理：@58 「你为什么认为是二分之一？」，小雨给出了完整的份数解释；@252 「为什么说它是四分之一？」，小柔基于折纸操作说明了理由。\n[[i]]两次追问都出现在学生先给出答案之后，时机较好；学生回应平均约 13 秒，均包含「因为……」句式。\n[[s]]可以尝试在学生说理后追加「谁可以补充？」，把个体推理变成全班资源。`};
+  if(/参与|充分|学生/.test(q)) return {t:`[[d]]学生话语占比约 ${STAT.sPct}%，共 ${STAT.sTurn} 个话轮，4 名学生发言。参与最密集的是 @128 到 @228 的「合作思考」段：同意/不同意 → 挑战 → 解释他人 → 补充 连续推进。\n[[i]]这一段学生在回应同伴观点而不只是回答教师，是本节选参与质量最高的部分。`};
+  if(/等待|停顿|时间/.test(q)) return {t:`[[d]]提问后平均等待约 2.8 秒；最短的一次在 @152 挑战之后，约 1.2 秒学生即齐声回答。\n[[i]]齐答且等待很短，通常说明问题偏封闭，学生可能没有充分思考。\n[[s]]通用建议（非本课数据结论）：把封闭问法改为开放问法后等待 3–5 秒再点名。`};
+  return {t:`[[d]]这个问题超出了本视频字幕与分析能回答的范围，我不能编造课堂上没有的信息。\n[[s]]你可以问我：某个策略的使用情况、某段对话的过程、师生话语与轮次数据，例如「${AI_SUGG[0]}」。`};
+}
+
+/* ================= 状态与工具 ================= */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const S={t:0,playing:false,timer:null,stack:[],goals:[{n:'追问推理',g:2}],hideSoc:false,cloudR:'t',shared:false,chatStarted:false};
+const fmt=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+function toast(m){const el=$('#toast');el.textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200);}
+
+/* 统计（由字幕数据实时计算，保证口径一致） */
+const STAT=(()=>{
+  let tSec=0,sSec=0,tTurn=0,sTurn=0,prev=null;
+  SUBS.forEach(u=>{const d=u.e-u.s;
+    if(u.w==='t'){tSec+=d;if(prev!=='t')tTurn++;}
+    if(u.w==='s'){sSec+=d;if(prev!=='s')sTurn++;}
+    prev=u.w;});
+  const o=DUR-tSec-sSec;
+  return {tSec,sSec,o,tTurn,sTurn,tPct:Math.round(tSec/DUR*100),sPct:Math.round(sSec/DUR*100),oPct:Math.round(o/DUR*100),
+    apt:SUBS.filter(u=>u.a).length,types:new Set(SUBS.filter(u=>u.a).map(u=>u.a)).size};
+})();
+
+/* ================= 路由 ================= */
+function showTab(id){
+  $$('#app > .scr:not(.push)').forEach(s=>s.classList.toggle('on',s.id===id));
+  $$('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));
+  S.stack.forEach(sid=>{const el=document.getElementById(sid);el.classList.remove('in');el.classList.remove('on');});
+  S.stack=[];
+}
+function pushScr(id){
+  const el=document.getElementById(id);
+  el.classList.add('on');requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+  S.stack.push(id);
+}
+function popScr(){
+  const id=S.stack.pop();if(!id)return;
+  const el=document.getElementById(id);
+  el.classList.remove('in');setTimeout(()=>el.classList.remove('on'),220);
+}
+function openAnalysis(t,pane){
+  if(!S.stack.includes('scr-detail')){showTab('scr-analyze');pushScr('scr-detail');}
+  aTab(pane||'overview');
+  seekFlash(t);
+}
+
+/* ================= 播放器 ================= */
+function curSub(){return SUBS.findIndex(u=>S.t>=u.s&&S.t<u.e);}
+function seek(t){S.t=Math.max(0,Math.min(DUR,t));syncUI(true);}
+function seekFlash(t){
+  seek(t);
+  const i=curSub();if(i<0)return;
+  $$('.subList').forEach(list=>{
+    const el=list.querySelectorAll('.sub')[i];if(!el)return;
+    if(list.offsetParent)el.scrollIntoView({block:'center'});
+    el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
+  });
+}
+function playPause(){S.playing?pause():play();}
+function play(){
+  S.playing=true;$('#playIco').innerHTML='<path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/>';
+  S.timer=setInterval(()=>{S.t+=0.25;if(S.t>=DUR){S.t=DUR;pause();}syncUI();},250);
+}
+function pause(){
+  S.playing=false;$('#playIco').innerHTML='<path d="M8 5.5v13l11-6.5z"/>';
+  clearInterval(S.timer);
+}
+let lastSubIdx=-1;
+function syncUI(force){
+  $('#barFill').style.width=(S.t/DUR*100)+'%';
+  $('#tmNow').textContent=fmt(S.t);
+  const i=curSub();
+  if(i!==lastSubIdx||force){
+    lastSubIdx=i;
+    const u=SUBS[i];
+    $('#osdText').textContent=u?u.x:'（本节选结束）';
+    $$('#figs .fig').forEach(f=>f.classList.toggle('talk',u&&f.dataset.f===u.w));
+    if(u&&u.w==='s')$('#figStuName').textContent=u.n;
+    $$('.subList').forEach(list=>{
+      const subs=list.querySelectorAll('.sub');
+      subs.forEach((el,k)=>el.classList.toggle('now',k===i));
+      if(S.playing&&list.offsetParent&&subs[i])subs[i].scrollIntoView({block:'nearest',behavior:'smooth'});
+    });
+  }
+}
+
+/* ================= 构建：字幕列表 ================= */
+function buildSubs(){
+  const html='<div class="secLabel" style="margin-top:14px">同步字幕（点击跳转 · 可纠正角色与文字）</div>'+SUBS.map(u=>{
+    const col=u.w==='t'?'var(--teach)':u.w==='s'?'var(--stud)':'#9AA5B1';
+    const who=u.w==='t'?'师':u.w==='s'?'生':'班';
+    const mk=u.a?`<span class="aptMk" style="background:${GT[APT[u.a].g]};color:${GC[APT[u.a].g]}">${APT[u.a].cn}</span>`:'';
+    return `<div class="sub" onclick="seek(${u.s})"><div class="who" style="background:${col}">${who}</div><div><div class="st">${u.n}：${u.x}${mk}</div><div class="stm">${fmt(u.s)}</div></div></div>`;
+  }).join('');
+  $$('.aPane[data-p="overview"], .aPane[data-p="apt"]').forEach(p=>{
+    const host=document.createElement('div');host.className='subList';host.innerHTML=html;p.appendChild(host);
+  });
+}
+
+/* ================= 概览 ================= */
+function buildOverview(){
+  $('#statGrid').innerHTML=`
+    <div class="stat"><div class="sv">05:00<small>节选</small></div><div class="sk">分析时长</div></div>
+    <div class="stat"><div class="sv num">${STAT.tTurn+STAT.sTurn}</div><div class="sk">对话轮次（师 ${STAT.tTurn} · 生 ${STAT.sTurn}）</div></div>
+    <div class="stat"><div class="sv num">${STAT.apt}<small>次 · ${STAT.types}/8 类</small></div><div class="sk">APT 可能实例</div></div>
+    <div class="stat"><div class="sv num">2.8<small>秒</small></div><div class="sk">提问后平均等待</div></div>`;
+  $('#talkBar').innerHTML=`
+    <i style="flex:${STAT.tPct};background:var(--teach)">${STAT.tPct}%</i>
+    <i style="flex:${STAT.sPct};background:var(--stud)">${STAT.sPct}%</i>
+    <i style="flex:${STAT.oPct};background:#C3CAD3;color:var(--ink2)">${STAT.oPct}%</i>`;
+}
+
+/* ================= APT 页 ================= */
+let DET=SUBS.map((u,i)=>u.a?{i,s:u.s,a:u.a,c:u.c,x:u.x,ok:false,fix:null}:null).filter(Boolean);
+function buildApt(){
+  $('#aptTotal').textContent=`共 ${DET.length} 次`;
+  const cnt={};Object.keys(APT).forEach(k=>cnt[k]=0);DET.forEach(d=>cnt[d.fix||d.a]++);
+  const max=Math.max(...Object.values(cnt),1);
+  $('#aptDist').innerHTML=Object.entries(APT).map(([k,v])=>`
+    <div class="aptRow"><div class="an">${v.cn}</div>
+      <div class="ab"><i style="width:${cnt[k]/max*100}%;background:${GC[v.g]}"></i></div>
+      <div class="ac">${cnt[k]}</div></div>`).join('');
+  $('#aptLegend').innerHTML=Object.entries(GOALS).map(([g,n])=>`<b style="--lc:${GC[g]}">${n}</b>`).join('');
+  const ticks=[0,60,120,180,240,300];
+  $('#aptTl').innerHTML='<div class="axis"></div>'+
+    DET.map((d,k)=>`<button class="tlm" style="left:calc(10px + ${d.s/DUR}*(100% - 20px));background:${GC[APT[d.fix||d.a].g]}" title="${APT[d.fix||d.a].cn} ${fmt(d.s)}" onclick="jumpEv(${k})" aria-label="${APT[d.fix||d.a].cn}"></button>`).join('')+
+    ticks.map(t=>`<span class="tick" style="left:calc(10px + ${t/DUR}*(100% - 20px))">${fmt(t)}</span>`).join('');
+  $('#evCount').textContent=DET.length;
+  $('#evList').innerHTML=DET.map((d,k)=>{
+    const a=APT[d.fix||d.a], nxt=SUBS[d.i+1];
+    return `<div class="evCard" id="ev${k}">
+      <div class="ev-h"><span class="tChip" onclick="seekFlash(${d.s})">${fmt(d.s)}</span>
+        <span class="pill g${a.g}">${a.cn} · ${a.en}</span>
+        ${d.fix?'<span class="corrTag">已由教师改正</span>':''}
+        <span class="conf">置信度 ${d.c}%</span></div>
+      <div class="q">王老师：「${d.x}」</div>
+      ${nxt?`<div class="cx">学生回应 · ${nxt.n}：「${nxt.x}」</div>`:''}
+      <div class="ev-f">
+        <button class="miniBtn ${d.ok?'on':''}" onclick="confirmEv(${k},this)">${d.ok?'✓ 已确认':'确认'}</button>
+        <button class="miniBtn" onclick="openFix(${k})">改正</button>
+        <span class="spacer"></span>
+        <button class="miniBtn" style="color:var(--brand-deep)" onclick="seekFlash(${d.s})">▶ 回看</button>
+      </div></div>`;
+  }).join('');
+}
+function jumpEv(k){
+  seekFlash(DET[k].s);
+  const el=$('#ev'+k);if(!el)return;
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+  $$('.evCard').forEach(c=>c.classList.remove('hi'));el.classList.add('hi');
+  setTimeout(()=>el.classList.remove('hi'),1600);
+}
+function confirmEv(k,btn){DET[k].ok=!DET[k].ok;btn.classList.toggle('on',DET[k].ok);btn.textContent=DET[k].ok?'✓ 已确认':'确认';if(DET[k].ok)toast('已确认该识别结果，将用于改进模型');}
+function openFix(k){
+  const d=DET[k];
+  openSheet(`<div class="shHead">改正这条识别</div><div class="shSub">当前标签：${APT[d.fix||d.a].cn} · 你的改正只影响自己的分析，并作为受控反馈帮助改进模型。</div>
+  <div style="margin-top:8px">${Object.entries(APT).map(([key,v])=>`
+    <button class="radio ${key===(d.fix||d.a)?'on':''}" onclick="doFix(${k},'${key}')"><span class="rdot"></span><span style="flex:1">${v.cn} <span style="color:var(--ink3);font-size:11.5px">${v.en} · ${GOALS[v.g]}</span></span></button>`).join('')}
+    <button class="radio" onclick="doFix(${k},null)"><span class="rdot"></span><span style="flex:1;color:var(--danger)">这不是 APT 策略（移除）</span></button>
+  </div>`);
+}
+function doFix(k,key){
+  if(key===null){DET.splice(k,1);toast('已移除该实例（保留纠正记录）');}
+  else{DET[k].fix=key;DET[k].ok=true;toast('已改正为「'+APT[key].cn+'」');}
+  closeSheet();buildApt();buildBarMks();
+}
+
+/* ================= 词云 ================= */
+function cloudRole(r){S.cloudR=r;$$('#cloudSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));buildCloud();}
+function toggleSoc(){S.hideSoc=!S.hideSoc;$('#socSw').classList.toggle('on',S.hideSoc);buildCloud();}
+function buildCloud(){
+  let ws=CLOUD[S.cloudR].filter(w=>!(S.hideSoc&&w.c==='soc'));
+  const max=Math.max(...ws.map(w=>w.f));
+  const order=[...ws].sort((a,b)=>b.f-a.f);
+  const mixed=[];order.forEach((w,i)=>{i%2?mixed.push(w):mixed.unshift(w);});
+  $('#cloudBox').innerHTML=mixed.map(w=>{
+    const fs=(13+(w.f/max)*13).toFixed(1);
+    return `<button style="font-size:${fs}px;color:${CCOL[w.c]}" onclick="openWord('${w.w}')">${w.w}</button>`;
+  }).join('');
+}
+function openWord(word){
+  const w=CLOUD[S.cloudR].find(x=>x.w===word);
+  const hits=SUBS.filter(u=>u.x.includes(word)).slice(0,2);
+  openSheet(`<div class="shHead">「${word}」</div>
+    <div class="shSub">出现 ${w.f} 次 · 类别：${CNAME[w.c]}（自动分类，<button style="color:var(--brand-deep);font-weight:600" onclick="toast('分类纠正（演示略）')">纠正</button>）</div>
+    <div style="margin-top:12px">${hits.length?hits.map(h=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--line2)">
+        <div style="font-size:13.5px;line-height:1.6">${h.n}：${h.x.replace(new RegExp(word,'g'),`<b style="color:${CCOL[w.c]}">${word}</b>`)}</div>
+        <div style="margin-top:6px"><span class="tChip" onclick="closeSheet();seekFlash(${h.s})">${fmt(h.s)} 跳转原文</span></div>
+      </div>`).join(''):'<div class="shSub">例句索引建立中（演示数据未覆盖）</div>'}</div>`);
+}
+
+/* ================= 结构 ================= */
+function buildStruct(){
+  const W=1000,H=120,y={t:18,s:66},hh=32;
+  const rects=SUBS.filter(u=>u.w!=='all').map(u=>{
+    const x=u.s/DUR*W,w=(u.e-u.s)/DUR*W-2;
+    const col=u.w==='t'?'#0D8A7A':'#C2410C';
+    return `<rect x="${x}" y="${y[u.w]}" width="${Math.max(w,3)}" height="${hh}" rx="5" fill="${col}" style="cursor:pointer" onclick="seekFlash(${u.s})"><title>${u.n} ${fmt(u.s)}</title></rect>`;
+  }).join('');
+  const ticks=[0,60,120,180,240,300].map(t=>`<text x="${t/DUR*W}" y="${H-4}" font-size="11" fill="#8B95A1" text-anchor="${t===0?'start':t===300?'end':'middle'}" font-family="inherit">${fmt(t)}</text>`).join('');
+  $('#bandBox').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="师生轮次时间轴">
+    <text x="4" y="${y.t-5}" font-size="11.5" fill="#55616E">教师</text>
+    <text x="4" y="${y.s-5}" font-size="11.5" fill="#55616E">学生</text>
+    ${rects}${ticks}</svg>`;
+  $('#structGrid').innerHTML=`
+    <div class="stat"><div class="sv num">${STAT.tTurn} / ${STAT.sTurn}</div><div class="sk">教师 / 学生轮次</div></div>
+    <div class="stat"><div class="sv num">${(STAT.tSec/STAT.tTurn).toFixed(1)}<small>秒</small></div><div class="sk">教师平均话轮时长</div></div>
+    <div class="stat"><div class="sv num">${(STAT.sSec/STAT.sTurn).toFixed(1)}<small>秒</small></div><div class="sk">学生平均话轮时长</div></div>
+    <div class="stat"><div class="sv num">16<small>秒</small></div><div class="sk">最长连续讲述 <span class="tChip" onclick="seekFlash(228)">03:48</span></div></div>`;
+}
+
+/* ================= AI ================= */
+function chipify(t){
+  return t.replace(/@(\d+)/g,(m,s)=>`<span class="tChip" onclick="seekFlash(${s})">${fmt(+s)}</span>`)
+    .replace(/\[\[d\]\]/g,'<span class="aiTag d">数据</span>')
+    .replace(/\[\[i\]\]/g,'<span class="aiTag i">基于证据的推断</span>')
+    .replace(/\[\[s\]\]/g,'<span class="aiTag s">通用建议</span>');
+}
+function buildAI(){
+  if(S.chatStarted)return;S.chatStarted=true;
+  $('#suggBox').innerHTML=AI_SUGG.map(q=>`<button onclick="askAI('${q}')">${q}</button>`).join('');
+  addMsg('你好，王老师。我已读取本视频的字幕与分析结果，可以带时间戳回答你的问题。','ai');
+}
+function addMsg(t,who){
+  const el=document.createElement('div');el.className='cm'+(who==='me'?' me':'');
+  el.innerHTML=who==='me'?t:chipify(t);
+  $('#chatBox').appendChild(el);
+  $('#detailBody').scrollTo({top:9e6,behavior:'smooth'});
+  return el;
+}
+function askAI(q){
+  addMsg(q,'me');
+  const tp=document.createElement('div');tp.className='cm';tp.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+  $('#chatBox').appendChild(tp);$('#detailBody').scrollTo({top:9e6,behavior:'smooth'});
+  setTimeout(()=>{tp.remove();addMsg(aiAnswer(q).t,'ai');},900);
+}
+function sendChat(){const v=$('#chatIn').value.trim();if(!v)return;$('#chatIn').value='';askAI(v);}
+
+/* ================= 学习页构建 ================= */
+function buildLearn(){
+  const grp={1:[],2:[],3:[],4:[]};
+  Object.entries(APT).forEach(([k,v])=>grp[v.g].push([k,v]));
+  const brief={say_more:'邀请学生扩展自己的观点',revoice:'改述并请学生确认',press:'要求说出理由与依据',challenge:'反例或新条件检验想法',restate:'请其他学生转述同伴观点',agree:'对同伴推理作判断',add_on:'在他人想法上延伸',explain:'解释同伴观点的含义'};
+  $('#stratList').innerHTML=Object.entries(GOALS).map(([g,gn])=>`
+    <div class="goalHead" style="--gc:${GC[g]}">目标 ${g} · ${gn} <em>Goal ${g}</em></div>
+    ${grp[g].map(([k,v])=>`
+      <button class="stratCard" onclick="openStrategy('${k}')">
+        <div class="sc-i" style="background:${GC[v.g]}">${v.cn[0]}</div>
+        <div style="flex:1"><div class="sc-n">${v.cn} <span style="font-weight:500;color:var(--ink3);font-size:11px">${v.en}</span></div><div class="sc-e">${brief[k]}</div></div>
+        <svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg>
+      </button>`).join('')}`).join('');
+  const units=[['1','什么是学术生产性对话','done'],['2','多说与重述确认','done'],['3','追问推理','done'],['4','挑战与反例','now'],['5','倾听：重新阐述','todo'],['6','合作思考（上）：同意与补充','todo'],['7','合作思考（下）：解释他人','todo'],['8','把话步组合成对话','todo']];
+  $('#unitList').innerHTML=units.map(([n,t,st])=>`
+    <button class="unitRow ${st}" onclick="${st==='todo'?`toast('先完成前面的单元（演示规则）')`:`pushScr('scr-unit')`}">
+      <div class="ustat">${st==='done'?'✓':n}</div>
+      <div style="flex:1"><div class="un">单元 ${n} · ${t}</div><div class="um">${st==='done'?'已完成':st==='now'?'进行中 · 40%':'未开始'}</div></div>
+      ${st!=='todo'?'<svg class="chev" width="15" height="15" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m9 5 7 7-7 7"/></svg>':''}
+    </button>`).join('');
+}
+function openStrategy(k){
+  const v=APT[k],d=STRAT_DETAIL[k];
+  openSheet(`<div style="display:flex;align-items:center;gap:9px"><div class="sc-i" style="width:38px;height:38px;border-radius:11px;background:${GC[v.g]};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">${v.cn[0]}</div>
+    <div><div class="shHead" style="margin:0">${v.cn} <span style="font-weight:500;font-size:12px;color:var(--ink3)">${v.en}</span></div>
+    <span class="pill g${v.g}" style="margin-top:3px">目标 ${v.g} · ${GOALS[v.g]}</span></div></div>
+  <div class="secLabel">推荐话术</div>
+  ${d.talk.map(t=>`<div style="font-size:14px;padding:9px 12px;background:var(--bg);border-radius:10px;margin-top:7px">「${t}」</div>`).join('')}
+  <div class="secLabel">正例</div><p style="font-size:13px;line-height:1.7;margin-top:5px;color:var(--ink2)">${d.pos}</p>
+  <div class="secLabel">常见误区</div><p style="font-size:13px;line-height:1.7;margin-top:5px;color:var(--ink2)">${d.neg}</p>
+  <button class="btn" style="margin-top:16px" onclick="addGoal('${v.cn}',${v.g});closeSheet()">加入下一节课实践目标</button>
+  <p class="note" style="text-align:center">来源：APT 策略库 v1（Michaels et al., 2008 改编）</p>`);
+}
+function quiz(btn){
+  $$('.quizOpt').forEach(b=>b.classList.remove('right','wrong'));
+  const fb=$('#quizFb');fb.style.display='block';
+  if(btn.dataset.q==='r'){btn.classList.add('right');fb.innerHTML='✓ 正确。「挑战」给想法一个新的检验条件（0 也是偶数吗？），而不是否定学生或直接换人。';}
+  else{btn.classList.add('wrong');fb.innerHTML=btn.dataset.q==='w'?'再想想：「不对，再想想」只是否定，没有给出可检验的挑战点。':'再想想：直接换人求正确答案，跳过了让原学生检验自己想法的机会。';}
+}
+
+/* ================= 目标 / 分享 / 邀请 ================= */
+function renderGoals(){
+  $('#goalNames').innerHTML=S.goals.map(g=>`<span>${g.n}</span><span class="pill">目标 ${g.g} · ${GOALS[g.g]}</span>`).join('');
+  $('#goalCount').textContent=`${S.goals.length} 个进行中`;
+}
+function addGoal(n,g,btn){
+  if(S.goals.some(x=>x.n===n)){toast('「'+n+'」已在你的实践目标中');return;}
+  S.goals.push({n,g});renderGoals();
+  toast('已加入实践目标：'+n+' · 将在下次课堂分析中自动对照');
+  if(btn){btn.textContent='✓ 已加入';btn.disabled=true;btn.style.opacity=.6;}
+}
+function openShare(){
+  openSheet(`<div class="shHead">分享到工作区</div><div class="shSub">分享是显式授权，随时可撤销；页面会始终显示「当前谁能看见」。</div>
+  <div class="secLabel">选择工作区</div>
+  <button class="radio on"><span class="rdot"></span><span style="flex:1">三年级数学教研组 <span style="color:var(--ink3);font-size:11.5px">3 名成员</span></span></button>
+  <div class="secLabel">分享范围</div>
+  <button class="radio on" onclick="this.classList.add('on');this.nextElementSibling.classList.remove('on')"><span class="rdot"></span><span style="flex:1">整篇反思 + 引用的证据片段</span></button>
+  <button class="radio" onclick="this.classList.add('on');this.previousElementSibling.classList.remove('on')"><span class="rdot"></span><span style="flex:1">仅证据片段（不含反思正文）</span></button>
+  <div class="swRow" style="padding:4px 2px"><span style="flex:1;font-size:14px">允许成员评论</span><button class="sw on" onclick="this.classList.toggle('on')" aria-label="允许评论"></button></div>
+  <button class="btn" style="margin-top:14px" onclick="doShare()">确认分享</button>`);
+}
+function doShare(){
+  S.shared=true;closeSheet();
+  $('#refState').className='pill brand';$('#refState').textContent='已分享 · 三年级数学教研组';
+  $('#shareTime').textContent='刚刚';$('#revokeBtn').style.display='';
+  toast('已分享到「三年级数学教研组」，可随时撤销');
+}
+function revokeShare(){
+  S.shared=false;
+  $('#refState').className='pill mut';$('#refState').textContent='仅自己可见';
+  $('#shareTime').textContent='未分享';$('#revokeBtn').style.display='none';
+  toast('已撤销分享；讨论中的引用同步失效');
+}
+function openInvite(){
+  openSheet(`<div class="shHead">邀请成员</div><div class="shSub">邀请链接 7 天内有效，可随时撤销。新成员加入后<b>不会</b>看到你的私人视频、分析或反思。</div>
+  <div style="display:flex;gap:8px;margin-top:14px;align-items:center;background:var(--bg);border-radius:12px;padding:12px 13px">
+    <span style="flex:1;font-size:12.5px;color:var(--ink2);word-break:break-all">uptalk.app/j/SX3-8842（演示链接）</span>
+    <button class="miniBtn" style="background:var(--brand);color:#fff" onclick="toast('链接已复制（演示）')">复制</button></div>
+  <button class="btn ghost" style="margin-top:12px" onclick="closeSheet()">完成</button>`);
+}
+function sendCmt(){
+  const v=$('#cmtIn').value.trim();if(!v)return;$('#cmtIn').value='';
+  const host=$('#cmtList');
+  const el=document.createElement('div');el.className='cmt';
+  el.innerHTML=`<div class="ch"><div class="ava" style="width:28px;height:28px;font-size:11px;background:var(--brand)">王</div><span class="cn">王老师（我）</span><span class="ct">刚刚</span></div><div class="cb">${v.replace(/</g,'&lt;')}</div>`;
+  host.appendChild(el);toast('已回复');
+}
+function spaceTab(s){
+  $$('#scr-space-home .aTabs button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  $$('#scr-space-home .sPane').forEach(p=>p.style.display=p.dataset.s===s?'block':'none');
+}
+
+/* ================= 弹层 ================= */
+function openSheet(html){$('#sheet').innerHTML='<div class="grab"></div>'+html;$('#sheet').classList.add('on');$('#dim').classList.add('on');}
+function closeSheet(){$('#sheet').classList.remove('on');$('#dim').classList.remove('on');}
+
+/* ================= 分析页 tab ================= */
+function aTab(p){
+  $$('#aTabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $$('.aPane').forEach(x=>x.classList.toggle('on',x.dataset.p===p));
+  if(p==='ai')buildAI();
+  $('#detailBody').scrollTop=0;
+}
+
+/* ================= 进度条交互 ================= */
+$('#barWrap').addEventListener('pointerdown',e=>{
+  const r=$('#barWrap').getBoundingClientRect();
+  seek((e.clientX-r.left)/r.width*DUR);
+});
+
+/* 进度条上的 APT 小标记 */
+function buildBarMks(){
+  $('#barMks').innerHTML=DET.map(d=>`<span class="mk" style="left:${d.s/DUR*100}%;background:${GC[APT[d.a].g]}"></span>`).join('');
+}
+
+/* ================= 初始化 ================= */
+buildLearn();buildSubs();buildOverview();buildApt();buildCloud();buildStruct();buildBarMks();renderGoals();syncUI(true);
+</script>
+
+</body>
+</html>
