@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Uptalk">
 <meta name="theme-color" content="#0F766E">
-<link rel="apple-touch-icon" href="icon-180-v3.png">
+<link rel="apple-touch-icon" href="icon-180-v4.png">
 <style>
 /* ============ 设计令牌（单主题：设备展示台，App 内为浅色 UI） ============ */
 :root{
@@ -65,9 +65,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
 .body{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
 .body::-webkit-scrollbar{display:none}
 
-#tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px 10px;transition:transform .25s ease,opacity .2s ease}
+#tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px calc(10px + env(safe-area-inset-bottom,0px)*0.5);transition:transform .25s ease,opacity .2s ease}
 #tabbar.hide{transform:translateY(105%);opacity:0;pointer-events:none}
-.scr:not(.push) .body{padding-bottom:88px}
+.scr:not(.push) .body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px)*0.5)}
 #tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--ink3);padding:4px 0;border-radius:10px}
 #tabbar button.on{color:var(--brand)}
 #tabbar svg{width:23px;height:23px}
