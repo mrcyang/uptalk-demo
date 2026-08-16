@@ -905,7 +905,7 @@ const VIDEOS = {
   meta:`小学科学 · 英语课堂 · 05:38 · 真实音频转写 · <span style="color:var(--ok)">仅自己可见</span>`,
   badge:'真实课堂实录', tname:'教师', dur:338, subs:TINY_SUBS, cloud:TINY_CLOUD, wait:'≈0.2',
   media:'classroom-web-lite.mp4', mediaKind:'video',
-  srcs:['https://cdn.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4','classroom-web-lite.mp4','classroom-web.mp4'],
+  srcs:['classroom-web-lite.mp4','https://cdn.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4','classroom-web.mp4'],
   longest:58, longestAt:280.3,
   cloudNote:'字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：英文按空格分词，停用词表 v1；按「该角色有效词次」计。',
   quality:`<div class="card" style="display:flex;gap:8px;align-items:flex-start;background:var(--warn-bg);box-shadow:none;padding:10px 13px"><span style="font-size:13px">ℹ️</span><span style="font-size:12px;color:var(--warn-ink);line-height:1.6">真实课堂音频 · 本地自动转写（whisper-small）：个别词句与人名可能不准；教师/学生角色由内容推断，置信度中等——均可人工纠正。原始音频未随 demo 发布，此处仅展示转写与分析结果。</span></div>`,
@@ -1016,21 +1016,26 @@ function openCase(id,t,pane){
 const AUD=document.getElementById('realMedia');
 const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
 AUD.addEventListener('ended',()=>pause());
-/* 多源回退：当前源失败则切下一个源（如 CDN → 同域） */
-function nextSource(){
+/* 多源回退：当前源失败则切下一个源。auto=true 表示在非手势上下文（如超时看门狗）中切换，
+   iOS 不允许此时自动续播，因此转为暂停并提示用户再点一次播放 */
+function nextSource(auto){
   if(!V||!V.media)return false;
   V._srcIdx=(V._srcIdx||0)+1;
   const list=V.srcs||[V.media];
   if(V._srcIdx>=list.length)return false;
   const t=S.t,wasPlaying=S.playing;
-  AUD.src=list[V._srcIdx];AUD.load();AUD.currentTime=t;
-  if(wasPlaying)AUD.play().catch(()=>{});
+  AUD.src=list[V._srcIdx];AUD.load();
+  try{AUD.currentTime=t;}catch(e){}
   $('#stageBadge').textContent='已切换备用线路…';
+  if(wasPlaying){
+    if(auto){pause();toast('已切换播放线路，请再点一次播放',3200);}
+    else AUD.play().catch(()=>{pause();toast('已切换播放线路，请再点一次播放',3200);});
+  }
   return true;
 }
 AUD.addEventListener('error',()=>{
   if(!(V&&V.media&&AUD.getAttribute('src')))return;
-  if(nextSource())return;
+  if(nextSource(false))return;
   V._mediaFail=true;
   $('#stageBox').classList.remove('video');
   $('#stageBadge').textContent='媒体不可用 · 模拟播放';
@@ -1125,13 +1130,13 @@ function play(){
     if(vizAC&&vizAC.state==='suspended')vizAC.resume();
     AUD.muted=false;AUD.volume=1;
     if(Math.abs(AUD.currentTime-S.t)>0.4)AUD.currentTime=S.t;
-    AUD.play().catch(()=>{if(!nextSource()){V._mediaFail=true;$('#stageBadge').textContent='媒体不可用 · 模拟播放';}});
+    AUD.play().catch(()=>{if(!nextSource(false)){V._mediaFail=true;pause();$('#stageBadge').textContent='媒体不可用 · 模拟播放';}});
     if(!S._sndHint&&('ontouchstart' in window)){S._sndHint=1;toast('如无声音：请关闭手机侧边静音开关，并调高媒体音量',3600);}
     clearTimeout(S._stallT);
     S._stallT=setTimeout(()=>{
       if(S.playing&&mediaOn()&&AUD.currentTime<0.3){
-        toast('视频加载较慢，正在尝试备用线路…',3000);
-        nextSource();
+        toast('视频加载较慢，正在切换备用线路…',3000);
+        nextSource(true);
       }
     },10000);
   }
