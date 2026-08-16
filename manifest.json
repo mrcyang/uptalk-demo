@@ -5,7 +5,7 @@
   "scope": "/uptalk-demo/",
   "display": "standalone",
   "background_color": "#F4F6F8",
-  "theme_color": "#0F766E",
+  "theme_color": "#F4F6F8",
   "icons": [
     { "src": "icon-180-v4.png", "sizes": "180x180", "type": "image/png" },
     { "src": "icon-512-v4.png", "sizes": "512x512", "type": "image/png" }
