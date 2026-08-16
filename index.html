@@ -535,6 +535,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
           <button class="playBtn" id="playBtn" onclick="playPause()" aria-label="播放/暂停"><svg viewBox="0 0 24 24" id="playIco"><path d="M8 5.5v13l11-6.5z"/></svg></button>
           <div class="barWrap" id="barWrap"><div class="bar"><div class="fill" id="barFill"></div><span id="barMks"></span></div></div>
           <div class="tm"><span id="tmNow" class="num">00:00</span> / <span id="tmDur" class="num">05:00</span></div>
+          <button onclick="openDiag()" aria-label="线路诊断" style="width:26px;height:26px;border-radius:8px;background:#2B3648;color:#8A96AB;font-size:12px;flex-shrink:0">ⓘ</button>
         </div>
       </div>
 
@@ -905,7 +906,12 @@ const VIDEOS = {
   meta:`小学科学 · 英语课堂 · 05:38 · 真实音频转写 · <span style="color:var(--ok)">仅自己可见</span>`,
   badge:'真实课堂实录', tname:'教师', dur:338, subs:TINY_SUBS, cloud:TINY_CLOUD, wait:'≈0.2',
   media:'classroom-web-lite.mp4', mediaKind:'video',
-  srcs:['classroom-web-lite.mp4','https://cdn.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4','classroom-web.mp4'],
+  srcs:['classroom-web-lite.mp4',
+    'https://gcore.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4',
+    'https://testingcf.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4',
+    'https://fastly.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4',
+    'https://cdn.jsdelivr.net/gh/mrcyang/uptalk-demo@main/classroom-web-lite.mp4',
+    'classroom-web.mp4'],
   longest:58, longestAt:280.3,
   cloudNote:'字号 = 词频；颜色 = 功能类别（自动分类，可纠正）。点击词语查看例句并跳转原文。口径 v1：英文按空格分词，停用词表 v1；按「该角色有效词次」计。',
   quality:`<div class="card" style="display:flex;gap:8px;align-items:flex-start;background:var(--warn-bg);box-shadow:none;padding:10px 13px"><span style="font-size:13px">ℹ️</span><span style="font-size:12px;color:var(--warn-ink);line-height:1.6">真实课堂音频 · 本地自动转写（whisper-small）：个别词句与人名可能不准；教师/学生角色由内容推断，置信度中等——均可人工纠正。原始音频未随 demo 发布，此处仅展示转写与分析结果。</span></div>`,
@@ -1041,6 +1047,8 @@ AUD.addEventListener('error',()=>{
   $('#stageBadge').textContent='媒体不可用 · 模拟播放';
 });
 /* 缓冲可见化 + 慢网提示 */
+AUD.addEventListener('loadstart',()=>{if(mediaOn())$('#stageBadge').textContent='连接线路中…';});
+AUD.addEventListener('progress',()=>{if(mediaOn()&&!S.playing&&AUD.buffered.length)$('#stageBadge').textContent='已连接 · 缓冲中…';});
 AUD.addEventListener('waiting',()=>{if(mediaOn())$('#stageBadge').textContent='缓冲中…';});
 AUD.addEventListener('stalled',()=>{if(mediaOn())$('#stageBadge').textContent='缓冲中…（网络较慢）';});
 AUD.addEventListener('playing',()=>{if(mediaOn()){$('#stageBadge').textContent=V.badge;clearTimeout(S._stallT);}});
@@ -1322,6 +1330,52 @@ function askAI(q){
   setTimeout(()=>{tp.remove();addMsg(V.ai(q),'ai');},900);
 }
 function sendChat(){const v=$('#chatIn').value.trim();if(!v)return;$('#chatIn').value='';askAI(v);}
+
+/* ================= 线路诊断 ================= */
+function diagLine(name,txt,color){return `<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line2);font-size:12px"><span style="flex:1;color:var(--ink2)">${name}</span><span class="num" style="font-weight:600;color:${color||'var(--ink)'}">${txt}</span></div>`;}
+function openDiag(){
+  const st=['HAVE_NOTHING 未获取','HAVE_METADATA 有元数据','HAVE_CURRENT 有当前帧','HAVE_FUTURE 可播放','HAVE_ENOUGH 数据充足'][AUD.readyState]||AUD.readyState;
+  const nt=['EMPTY','IDLE 空闲','LOADING 加载中','NO_SOURCE 无可用源'][AUD.networkState]||AUD.networkState;
+  const buf=AUD.buffered&&AUD.buffered.length?`${AUD.buffered.end(AUD.buffered.length-1).toFixed(1)}s`:'0';
+  const errc=AUD.error?`code ${AUD.error.code}`:'无';
+  const curSrc=(AUD.currentSrc||'（未设置）').replace(/^https?:\/\//,'').slice(0,46);
+  openSheet(`<div class="shHead">播放线路诊断</div>
+    <div class="shSub">先看播放器状态，再点「开始测速」逐一测试各线路在<b>当前设备网络</b>下的连通性。</div>
+    <div style="margin-top:10px">
+      ${diagLine('当前线路',curSrc)}
+      ${diagLine('就绪状态',st)}
+      ${diagLine('网络状态',nt)}
+      ${diagLine('已缓冲',buf)}
+      ${diagLine('媒体错误',errc,AUD.error?'var(--danger)':'var(--ok)')}
+    </div>
+    <div id="diagOut" style="margin-top:4px"></div>
+    <button class="btn" style="margin-top:14px" id="diagBtn" onclick="runDiag()">开始测速（每条线路最多 8 秒）</button>
+    <p class="note">测完请把本页截图发给开发者。</p>`);
+}
+async function runDiag(){
+  const btn=$('#diagBtn');btn.disabled=true;btn.textContent='测速中…';
+  const out=$('#diagOut');out.innerHTML='';
+  const list=(V&&V.srcs)||[];
+  for(const u of list){
+    const name=u.startsWith('http')?u.replace(/^https:\/\//,'').split('/')[0]:('github.io 同域 · '+u.split('.').pop());
+    out.insertAdjacentHTML('beforeend',diagLine(name,'测试中…','var(--ink3)'));
+    const row=out.lastElementChild.lastElementChild;
+    const t0=performance.now();
+    try{
+      const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),8000);
+      const r=await fetch(u,{headers:{'Range':'bytes=0-131071'},cache:'no-store',signal:ctl.signal});
+      const b=await r.arrayBuffer();clearTimeout(tm);
+      const ms=performance.now()-t0,kbps=(b.byteLength/1024)/(ms/1000);
+      row.textContent=`HTTP ${r.status} · ${kbps.toFixed(0)} KB/s`;
+      row.style.color=kbps>25?'var(--ok)':'var(--warn-ink)';
+    }catch(e){
+      const ms=performance.now()-t0;
+      row.textContent=(e.name==='AbortError'?'超时(8s)':'失败 '+e.name)+` @${(ms/1000).toFixed(1)}s`;
+      row.style.color='var(--danger)';
+    }
+  }
+  btn.disabled=false;btn.textContent='重新测速';
+}
 
 /* ================= 反思页构建 ================= */
 function buildReflect(){
