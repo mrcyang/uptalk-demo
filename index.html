@@ -54,7 +54,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
 .body{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
 .body::-webkit-scrollbar{display:none}
 
-#tabbar{flex-shrink:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px calc(10px + env(safe-area-inset-bottom,0px))}
+#tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px calc(10px + env(safe-area-inset-bottom,0px));transition:transform .25s ease,opacity .2s ease}
+#tabbar.hide{transform:translateY(105%);opacity:0;pointer-events:none}
+.scr:not(.push) .body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 #tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--ink3);padding:4px 0;border-radius:10px}
 #tabbar button.on{color:var(--brand)}
 #tabbar svg{width:23px;height:23px}
@@ -982,21 +984,23 @@ function setCase(id){
 }
 
 /* ================= 路由 ================= */
+function updateTabbar(){$('#tabbar').classList.toggle('hide',S.stack.length>0);}
 function showTab(id){
   $$('#app > .scr:not(.push)').forEach(s=>s.classList.toggle('on',s.id===id));
   $$('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));
   S.stack.forEach(sid=>{const el=document.getElementById(sid);el.classList.remove('in');el.classList.remove('on');});
-  S.stack=[];
+  S.stack=[];updateTabbar();
 }
 function pushScr(id){
   const el=document.getElementById(id);
   el.classList.add('on');requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
-  S.stack.push(id);
+  S.stack.push(id);updateTabbar();
 }
 function popScr(){
   const id=S.stack.pop();if(!id)return;
   const el=document.getElementById(id);
   el.classList.remove('in');setTimeout(()=>el.classList.remove('on'),220);
+  updateTabbar();
 }
 function openCase(id,t,pane){
   if(!S.stack.includes('scr-detail')){showTab('scr-analyze');pushScr('scr-detail');}
