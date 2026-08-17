@@ -1,46 +1,48 @@
-/* Uptalk demo Service Worker：媒体文件本地缓存 + Range 响应
-   目的：iOS 主屏幕 Web App 的媒体进程对网络流/blob 均可能挂起，
-   由 SW 以普通同源 URL + 206 区间响应从 Cache 回吐，播放全程本地化 */
+/* Uptalk demo Service Worker v3（v0.6.3）：只从本地缓存服务媒体，绝不代理网络。
+   规则：字节已在缓存 → 按 Range 回吐 206（App 模式的本地通道）；
+   其余一律不介入（浏览器原生网络播放，行为与无 SW 时一致）。
+   SW 自身从不发起媒体网络请求——下载唯一入口是页面的带进度 fetch。 */
 const CACHE = 'uptalk-media';
 const MEDIA = /classroom-web(-lite)?\.mp4$/;
-const bufMem = new Map(); /* 进程内热缓存，避免每个 range 请求重复解码 */
-const inflight = new Map(); /* url→Promise：并发请求共享同一次下载，不再各起一份 6.6MB */
+const bufMem = new Map(); /* 进程内热缓存：SW 存活期内免重复读盘 */
+let readySet = null;      /* 已确认在缓存中的 URL 集合；null = 尚未扫描 */
 
-self.addEventListener('install', e => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-
-async function mediaBuffer(url) {
-  if (bufMem.has(url)) return bufMem.get(url);
-  if (inflight.has(url)) return inflight.get(url);
-  const p = (async () => {
-    const cache = await caches.open(CACHE);
-    const res = await cache.match(url, { ignoreVary: true, ignoreSearch: true });
-    if (res) { const buf = await res.arrayBuffer(); bufMem.set(url, buf); return buf; }
-    const net = await fetch(url, { cache: 'default' });
-    if (!net.ok) throw new Error('net ' + net.status);
-    const buf = await net.arrayBuffer();
-    bufMem.set(url, buf); /* 先入内存再写盘：写盘配额失败不丢弃已下载数据 */
-    try { await cache.put(url, new Response(buf.slice(0), { headers: {
-      'Content-Type': 'video/mp4', 'Content-Length': String(buf.byteLength) } })); } catch (e) {}
-    return buf;
-  })();
-  inflight.set(url, p);
-  try { return await p; } finally { inflight.delete(url); }
+async function scanCache() {
+  try {
+    const c = await caches.open(CACHE);
+    readySet = new Set((await c.keys()).map(r => r.url));
+  } catch (e) { readySet = new Set(); }
 }
 
-async function serveMedia(req) {
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(Promise.all([self.clients.claim(), scanCache()])));
+/* 页面在 cache.put 成功后通知；SW 被系统重启后也能靠 scanCache 自愈 */
+self.addEventListener('message', e => {
+  const d = e.data;
+  if (d && d.t === 'media-cached' && d.url) { if (!readySet) readySet = new Set(); readySet.add(d.url); }
+});
+
+async function serveLocal(req) {
   try {
-    const buf = await mediaBuffer(req.url);
+    let buf = bufMem.get(req.url);
+    if (!buf) {
+      const c = await caches.open(CACHE);
+      const hit = await c.match(req.url, { ignoreVary: true, ignoreSearch: true });
+      if (!hit) { if (readySet) readySet.delete(req.url); return fetch(req); } /* 登记过期：透传原生 */
+      buf = await hit.arrayBuffer();
+      bufMem.set(req.url, buf);
+    }
     const total = buf.byteLength;
     const range = req.headers.get('range');
     if (!range) {
       return new Response(buf.slice(0), { status: 200, headers: {
         'Content-Type': 'video/mp4', 'Content-Length': String(total), 'Accept-Ranges': 'bytes' } });
     }
-    const m = /bytes=(\d+)-(\d*)/.exec(range);
-    const start = m ? +m[1] : 0;
-    const end = (m && m[2]) ? Math.min(+m[2], total - 1) : total - 1;
-    if (start >= total) {
+    let start, end;
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    if (m && m[1] === '' && m[2]) { const n = Math.min(+m[2], total); start = total - n; end = total - 1; } /* 后缀区间 bytes=-N */
+    else { start = m ? +(m[1] || 0) : 0; end = (m && m[2]) ? Math.min(+m[2], total - 1) : total - 1; }
+    if (start >= total || start > end) {
       return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${total}` } });
     }
     const chunk = buf.slice(start, end + 1);
@@ -50,20 +52,16 @@ async function serveMedia(req) {
       'Content-Length': String(chunk.byteLength),
       'Accept-Ranges': 'bytes' } });
   } catch (e) {
-    if (req.headers.get('range')) {
-      /* Range 请求绝不透传：网络流在 App 模式会挂死媒体进程且毫无征兆；
-         快速 503 让 <video> 立即报错，页面得以感知并换轨 */
-      return new Response(null, { status: 503, headers: { 'X-SW-Error': String(e && e.message || e) } });
-    }
-    return fetch(req); /* 整文件请求仍透传，保 Safari 标签页兜底 */
+    return fetch(req); /* 任何内部异常：透传原生网络，绝不比无 SW 更坏 */
   }
 }
 
 self.addEventListener('fetch', e => {
   let u;
   try { u = new URL(e.request.url); } catch (err) { return; }
-  if (e.request.headers.get('X-SW-Bypass')) return; /* 页面自带下载器：放行直连，进度真实可见 */
-  if (u.origin === self.location.origin && MEDIA.test(u.pathname)) {
-    e.respondWith(serveMedia(e.request));
-  }
+  if (e.request.headers.get('X-SW-Bypass')) return; /* 页面自带下载器：直连，进度真实可见 */
+  if (u.origin !== self.location.origin || !MEDIA.test(u.pathname)) return;
+  if (!readySet) { e.waitUntil(scanCache()); return; } /* 未扫描：本次原生，同时补扫描 */
+  if (!readySet.has(e.request.url)) return; /* 缓存没有：完全不介入 */
+  e.respondWith(serveLocal(e.request));
 });
