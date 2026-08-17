@@ -322,7 +322,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
     <section class="scr on" id="scr-home">
       <div class="hd">
         <div class="logo">uptalk<i>.</i></div>
-        <span class="demoTag">DEMO · 演示数据</span>
+        <span class="demoTag">DEMO · v0.5.2</span>
         <button class="iconBtn" onclick="toast('通知中心（演示略）')" aria-label="通知"><svg viewBox="0 0 24 24" class="i"><path fill="none" stroke="#55616E" stroke-width="1.7" stroke-linecap="round" d="M6 10a6 6 0 1 1 12 0c0 4 1.6 5.4 1.6 5.4H4.4S6 14 6 10Zm4.5 8.6a1.8 1.8 0 0 0 3 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="body">
@@ -468,7 +468,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:700">关于这个 Demo</div>
-          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.1（2026-08-13）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
+          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.5.2（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
         </div>
       </div>
     </section>
@@ -981,7 +981,7 @@ function setCase(id){
   if(V.media&&!V._mediaFail){
     if(V._blobUrl){
       if(AUD.getAttribute('src')!==V._blobUrl){AUD.src=V._blobUrl;AUD.load();}
-    }else if(navigator.standalone&&V.mediaKind==='video'){
+    }else if(isStandalone()&&V.mediaKind==='video'){
       AUD.removeAttribute('src');ensureBlob(); /* App 模式：只走下载→本地播放 */
     }else{
       const s0=(V.srcs||[V.media])[V._srcIdx||0];
@@ -1027,8 +1027,11 @@ function openCase(id,t,pane){
 }
 
 /* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
+const DEMO_VER='v0.5.2';
 const AUD=document.getElementById('realMedia');
 const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
+const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+const isBlobSrc=()=>((AUD.currentSrc||AUD.getAttribute('src')||'').startsWith('blob:'));
 AUD.addEventListener('ended',()=>pause());
 /* 多源回退：当前源失败则切下一个源。auto=true 表示在非手势上下文（如超时看门狗）中切换，
    iOS 不允许此时自动续播，因此转为暂停并提示用户再点一次播放 */
@@ -1057,13 +1060,15 @@ AUD.addEventListener('error',()=>{
   V._mediaFail=true;
   $('#stageBox').classList.remove('video');
   $('#stageBadge').textContent='媒体不可用 · 模拟播放';
-  if(navigator.standalone)toast('主屏幕模式播放受限时，请在 Safari 中打开本页观看',4200);
+  if(isStandalone())toast('主屏幕模式播放受限时，请在 Safari 中打开本页观看',4200);
 });
 /* 缓冲可见化 + 慢网提示 */
-AUD.addEventListener('loadstart',()=>{if(mediaOn())$('#stageBadge').textContent='连接线路中…';});
-AUD.addEventListener('progress',()=>{if(mediaOn()&&!S.playing&&AUD.buffered.length)$('#stageBadge').textContent='已连接 · 缓冲中…';});
-AUD.addEventListener('waiting',()=>{if(mediaOn())$('#stageBadge').textContent='缓冲中…';});
-AUD.addEventListener('stalled',()=>{if(mediaOn())$('#stageBadge').textContent='缓冲中…（网络较慢）';});
+/* 注意：以下网络状态徽标只适用于流式加载；本地 blob 数据一律不显示"缓冲中" */
+AUD.addEventListener('loadstart',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge').textContent='连接线路中…';});
+AUD.addEventListener('progress',()=>{if(mediaOn()&&!isBlobSrc()&&!S.playing&&AUD.buffered.length)$('#stageBadge').textContent='已连接 · 缓冲中…';});
+AUD.addEventListener('waiting',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge').textContent='缓冲中…';});
+AUD.addEventListener('stalled',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge').textContent='缓冲中…（网络较慢）';});
+AUD.addEventListener('canplay',()=>{if(mediaOn()&&isBlobSrc()&&!S.playing)$('#stageBadge').textContent='视频已就绪 · 点击播放';});
 AUD.addEventListener('playing',()=>{if(mediaOn()){$('#stageBadge').textContent=V.badge;clearTimeout(S._stallT);}});
 /* 用 timeupdate 直接驱动同步（比定时器更可靠），滚动异常不阻塞高亮 */
 AUD.addEventListener('timeupdate',()=>{if(S.playing&&mediaOn()){S.t=AUD.currentTime;try{syncUI();}catch(e){}}});
@@ -1071,7 +1076,7 @@ AUD.addEventListener('loadedmetadata',()=>{if(Math.abs(AUD.currentTime-S.t)>0.5)
 /* 主屏幕 App（standalone）媒体加载器失效规避：fetch 整体下载 → Blob 本地播放。
    fetch 在 standalone 中正常，媒体流式通道则可能一直缓冲，故绕开之 */
 async function ensureBlob(){
-  if(!V||!V.media||V.mediaKind!=='video'||!navigator.standalone)return;
+  if(!V||!V.media||V.mediaKind!=='video'||!isStandalone())return;
   if(V._blobUrl||V._blobErr||V._blobBusy)return;
   const cur=V;cur._blobBusy=true;
   const url=(cur.srcs||[cur.media])[0];
@@ -1186,7 +1191,7 @@ function seekFlash(t){
 function playPause(){S.playing?pause():play();}
 function play(){
   /* App 模式（standalone）视频只走本地数据：下载完成前不进入播放状态 */
-  if(mediaOn()&&V.mediaKind==='video'&&navigator.standalone&&!V._blobUrl){
+  if(mediaOn()&&V.mediaKind==='video'&&isStandalone()&&!V._blobUrl){
     ensureBlob();
     toast('视频下载中，完成后请点播放',2200);
     return;
