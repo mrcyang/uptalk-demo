@@ -322,7 +322,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
     <section class="scr on" id="scr-home">
       <div class="hd">
         <div class="logo">uptalk<i>.</i></div>
-        <span class="demoTag">DEMO · v0.5.2</span>
+        <span class="demoTag">DEMO · v0.6</span>
         <button class="iconBtn" onclick="toast('通知中心（演示略）')" aria-label="通知"><svg viewBox="0 0 24 24" class="i"><path fill="none" stroke="#55616E" stroke-width="1.7" stroke-linecap="round" d="M6 10a6 6 0 1 1 12 0c0 4 1.6 5.4 1.6 5.4H4.4S6 14 6 10Zm4.5 8.6a1.8 1.8 0 0 0 3 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="body">
@@ -468,7 +468,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:700">关于这个 Demo</div>
-          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.5.2（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
+          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.6（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
         </div>
       </div>
     </section>
@@ -979,10 +979,11 @@ function setCase(id){
   $('#dTitle').textContent=V.title;$('#dMeta').innerHTML=V.meta;
   $('#tmDur').textContent=fmt(DUR);
   if(V.media&&!V._mediaFail){
-    if(V._blobUrl){
-      if(AUD.getAttribute('src')!==V._blobUrl){AUD.src=V._blobUrl;AUD.load();}
-    }else if(isStandalone()&&V.mediaKind==='video'){
-      AUD.removeAttribute('src');ensureBlob(); /* App 模式：只走下载→本地播放 */
+    if(V._localOk){
+      const ls=V._localMode==='sw'?(V.srcs||[V.media])[0]:V._blobUrl;
+      if(AUD.getAttribute('src')!==ls){AUD.src=ls;AUD.load();}
+    }else if(isStandalone()&&V.mediaKind==='video'&&!V._blobErr){
+      AUD.removeAttribute('src');ensureMedia(); /* App 模式：先本地化再播放 */
     }else{
       const s0=(V.srcs||[V.media])[V._srcIdx||0];
       if(AUD.getAttribute('src')!==s0){AUD.src=s0;AUD.load();}
@@ -1027,17 +1028,27 @@ function openCase(id,t,pane){
 }
 
 /* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
-const DEMO_VER='v0.5.2';
+const DEMO_VER='v0.6';
 const AUD=document.getElementById('realMedia');
 const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
 const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 const isBlobSrc=()=>((AUD.currentSrc||AUD.getAttribute('src')||'').startsWith('blob:'));
+/* Service Worker：媒体本地化服务（Range 响应），页面加载即注册 */
+if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+function swControlled(waitMs){
+  return new Promise(res=>{
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller)return res(true);
+    if(!('serviceWorker' in navigator))return res(false);
+    const t=setTimeout(()=>res(!!navigator.serviceWorker.controller),waitMs||3000);
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{clearTimeout(t);res(true);},{once:true});
+  });
+}
 AUD.addEventListener('ended',()=>pause());
 /* 多源回退：当前源失败则切下一个源。auto=true 表示在非手势上下文（如超时看门狗）中切换，
    iOS 不允许此时自动续播，因此转为暂停并提示用户再点一次播放 */
 function nextSource(auto){
   if(!V||!V.media)return false;
-  if(V._blobUrl||V._blobBusy)return false; /* 本地数据路径接管后禁止任何切换 */
+  if(V._localOk||V._blobBusy)return false; /* 本地数据路径接管后禁止任何切换 */
   V._srcIdx=(V._srcIdx||0)+1;
   const list=V.srcs||[V.media];
   if(V._srcIdx>=list.length)return false;
@@ -1053,9 +1064,10 @@ function nextSource(auto){
 }
 AUD.addEventListener('error',()=>{
   if(!(V&&V.media&&AUD.getAttribute('src')))return;
+  if(S._recover)return; /* 挂起恢复动作产生的 AbortError，忽略 */
   const s=AUD.currentSrc||AUD.getAttribute('src')||'';
-  if(s.startsWith('blob:')){AUD.load();return;} /* 本地数据不应报错，重挂重试 */
-  if(V._blobUrl||V._blobBusy)return; /* blob 路径接管中，忽略旧流残留错误 */
+  if(s.startsWith('blob:')||V._localOk){AUD.load();return;} /* 本地数据不应报错，重挂重试 */
+  if(V._blobBusy)return; /* 本地路径准备中，忽略旧流残留错误 */
   if(nextSource(false))return;
   V._mediaFail=true;
   $('#stageBox').classList.remove('video');
@@ -1068,22 +1080,27 @@ AUD.addEventListener('loadstart',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge'
 AUD.addEventListener('progress',()=>{if(mediaOn()&&!isBlobSrc()&&!S.playing&&AUD.buffered.length)$('#stageBadge').textContent='已连接 · 缓冲中…';});
 AUD.addEventListener('waiting',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge').textContent='缓冲中…';});
 AUD.addEventListener('stalled',()=>{if(mediaOn()&&!isBlobSrc())$('#stageBadge').textContent='缓冲中…（网络较慢）';});
-AUD.addEventListener('canplay',()=>{if(mediaOn()&&isBlobSrc()&&!S.playing)$('#stageBadge').textContent='视频已就绪 · 点击播放';});
-AUD.addEventListener('playing',()=>{if(mediaOn()){$('#stageBadge').textContent=V.badge;clearTimeout(S._stallT);}});
+AUD.addEventListener('canplay',()=>{if(mediaOn()&&V._localOk&&(!S.playing||S._startPending))$('#stageBadge').textContent=S._startPending?'启动播放中…':'视频已就绪 · 点击播放';});
+AUD.addEventListener('playing',()=>{
+  if(!mediaOn())return;
+  S._startPending=0;S._playOk=1;
+  $('#stageBadge').textContent=V.badge;clearTimeout(S._stallT);clearTimeout(S._hangT);
+  if(AUD.muted&&S._wantSound){setTimeout(()=>{AUD.muted=false;},60);} /* 静音起播成功后恢复声音 */
+});
 /* 用 timeupdate 直接驱动同步（比定时器更可靠），滚动异常不阻塞高亮 */
 AUD.addEventListener('timeupdate',()=>{if(S.playing&&mediaOn()){S.t=AUD.currentTime;try{syncUI();}catch(e){}}});
 AUD.addEventListener('loadedmetadata',()=>{if(Math.abs(AUD.currentTime-S.t)>0.5){try{AUD.currentTime=S.t;}catch(e){}}});
 /* 主屏幕 App（standalone）媒体加载器失效规避：fetch 整体下载 → Blob 本地播放。
    fetch 在 standalone 中正常，媒体流式通道则可能一直缓冲，故绕开之 */
-async function ensureBlob(){
+async function ensureMedia(){
   if(!V||!V.media||V.mediaKind!=='video'||!isStandalone())return;
-  if(V._blobUrl||V._blobErr||V._blobBusy)return;
+  if(V._localOk||V._blobErr||V._blobBusy)return;
   const cur=V;cur._blobBusy=true;
   const url=(cur.srcs||[cur.media])[0];
   try{
     let buf=null;
     /* 先查本地持久缓存：命中则秒开，不重复下载 */
-    try{const c=await caches.open('uptalk-media');const hit=await c.match(url);if(hit)buf=await hit.arrayBuffer();}catch(e){}
+    try{const c=await caches.open('uptalk-media');const hit=await c.match(url,{ignoreVary:true});if(hit)buf=await hit.arrayBuffer();}catch(e){}
     if(!buf){
       const r=await fetch(url,{cache:'default'});
       if(!r.ok)throw 0;
@@ -1096,21 +1113,23 @@ async function ensureBlob(){
         if(V===cur)$('#stageBadge').textContent='加载视频 '+Math.min(99,Math.round(got/len*100))+'%';
       }
       buf=await new Blob(chunks,{type:'video/mp4'}).arrayBuffer();
-      try{const c=await caches.open('uptalk-media');await c.put(url,new Response(buf.slice(0),{headers:{'Content-Type':'video/mp4'}}));}catch(e){}
+      try{const c=await caches.open('uptalk-media');await c.put(url,new Response(buf.slice(0),{headers:{'Content-Type':'video/mp4','Content-Length':String(buf.byteLength)}}));}catch(e){}
     }
-    cur._blobUrl=URL.createObjectURL(new Blob([buf],{type:'video/mp4'}));
-    cur._blobBusy=false;
+    /* 优先 SW 本地服务（媒体进程按普通 URL 播放，Range 由 SW 从缓存回吐）；SW 不可用则退回 blob */
+    const useSW=await swControlled(3000);
+    if(useSW){cur._localMode='sw';}
+    else{cur._blobUrl=URL.createObjectURL(new Blob([buf],{type:'video/mp4'}));cur._localMode='blob';}
+    cur._localOk=1;cur._blobBusy=false;
     if(V===cur){
       const t=S.t,wasPlaying=S.playing;
-      AUD.src=cur._blobUrl;AUD.load();
+      AUD.src=cur._localMode==='sw'?url:cur._blobUrl;AUD.load();
       try{AUD.currentTime=t;}catch(e){}
-      $('#stageBadge').textContent=cur.badge;
-      if(wasPlaying)AUD.play().catch(()=>{pause();toast('视频已就绪，请再点一次播放',2800);});
-      else toast('视频已就绪，可以播放',1800);
+      $('#stageBadge').textContent='视频已就绪 · 点击播放';
+      if(!wasPlaying)toast('视频已就绪，可以播放（'+(cur._localMode==='sw'?'本地服务':'本地数据')+'）',2000);
     }
   }catch(e){
     cur._blobBusy=false;cur._blobErr=1;
-    if(V===cur)toast('视频下载失败，将尝试直接播放',2500);
+    if(V===cur)toast('视频准备失败，点播放将尝试在线播放',2500);
   }
 }
 
@@ -1121,7 +1140,7 @@ function audioSessionOn(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     if(!sessAC)sessAC=new AC();
-    if(sessAC.state==='suspended')sessAC.resume();
+    if(sessAC.state!=='running'){try{sessAC.resume().catch(()=>{});}catch(e){}}
     if(!sessSrc){
       const b=sessAC.createBuffer(1,Math.max(1,Math.floor(sessAC.sampleRate/10)),sessAC.sampleRate);
       sessSrc=sessAC.createBufferSource();sessSrc.buffer=b;sessSrc.loop=true;
@@ -1190,26 +1209,53 @@ function seekFlash(t){
 }
 function playPause(){S.playing?pause():play();}
 function play(){
-  /* App 模式（standalone）视频只走本地数据：下载完成前不进入播放状态 */
-  if(mediaOn()&&V.mediaKind==='video'&&isStandalone()&&!V._blobUrl){
-    ensureBlob();
-    toast('视频下载中，完成后请点播放',2200);
+  /* App 模式（standalone）视频优先本地化：准备完成前不进入播放状态；准备失败(_blobErr)则放行在线播放 */
+  if(mediaOn()&&V.mediaKind==='video'&&isStandalone()&&!V._localOk&&!V._blobErr){
+    ensureMedia();
+    toast('视频准备中，完成后请点播放',2200);
     return;
   }
   S.playing=true;$('#playIco').innerHTML='<path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/>';
   if(mediaOn()){
-    audioSessionOn();
-    initViz();
-    if(vizAC&&vizAC.state==='suspended')vizAC.resume();
-    AUD.muted=false;AUD.volume=1;
+    /* 手势内第一时间调用 play()，其余操作后置，避免污染手势/音频会话 */
+    AUD.muted=false;AUD.volume=1;S._wantSound=1;
     if(AUD.readyState===0){try{AUD.load();}catch(e){}}
-    if(Math.abs(AUD.currentTime-S.t)>0.4)AUD.currentTime=S.t;
-    AUD.play().catch(()=>{if(!nextSource(false)){V._mediaFail=true;pause();$('#stageBadge').textContent='媒体不可用 · 模拟播放';}});
+    if(Math.abs(AUD.currentTime-S.t)>0.4){try{AUD.currentTime=S.t;}catch(e){}}
+    S._startPending=1;S._playOk=0;S._playGen=(S._playGen||0)+1;const gen=S._playGen;
+    if(V._localOk)$('#stageBadge').textContent='启动播放中…';
+    const p=AUD.play();
+    if(p&&p.then)p.then(()=>{if(gen===S._playGen)S._playOk=1;}).catch(err=>{
+      if(gen!==S._playGen||S._recover)return;
+      if(err&&err.name==='AbortError')return;
+      if(err&&err.name==='NotAllowedError'){
+        /* 策略拒绝：改静音起播（策略层永远放行），playing 事件里再恢复声音 */
+        AUD.muted=true;
+        AUD.play().catch(()=>{mediaDead(err.name);});
+        return;
+      }
+      mediaDead(err&&err.name||'未知错误');
+    });
+    /* 挂起检测（仅本地数据路径）：媒体进程既不 resolve 也不 reject 时给出明确出口 */
+    clearTimeout(S._hangT);
+    if(V._localOk){
+      S._hangT=setTimeout(()=>{
+        if(!(S.playing&&mediaOn())||S._playOk||AUD.currentTime>0.05)return;
+        S._recover=1;
+        try{AUD.pause();AUD.load();}catch(e){}
+        setTimeout(()=>{S._recover=0;},300);
+        pause();
+        $('#stageBadge').textContent='起播被系统挂起(rs:'+AUD.readyState+') · 请再点一次播放';
+        toast('起播被系统挂起，已重置，请再点一次播放',3000);
+      },2500);
+    }
+    if(!isStandalone())audioSessionOn(); /* 浏览器模式的静音键规避；App 模式不引入 AudioContext 变量 */
+    initViz();
+    if(vizAC&&vizAC.state!=='running'){try{vizAC.resume().catch(()=>{});}catch(e){}}
     if(!S._sndHint&&('ontouchstart' in window)){S._sndHint=1;toast('如无声音：请关闭手机侧边静音开关，并调高媒体音量',3600);}
     clearTimeout(S._stallT);
     const armStall=()=>{S._stallT=setTimeout(()=>{
       if(!(S.playing&&mediaOn())||AUD.currentTime>0.3)return;
-      if(V._blobUrl||V._blobBusy){armStall();return;} /* 本地数据路径不做任何切换 */
+      if(V._localOk||V._blobBusy){armStall();return;} /* 本地数据路径由 2.5s 挂起检测负责，此处不切换 */
       const hasData=AUD.buffered&&AUD.buffered.length&&AUD.buffered.end(AUD.buffered.length-1)>0.5;
       if(hasData){$('#stageBadge').textContent='缓冲中…';armStall();}
       else if(!V._autoSw){V._autoSw=1;toast('线路无响应，已切换备用线路，请再点一次播放',3200);nextSource(true);}
@@ -1224,9 +1270,14 @@ function play(){
   },250);
   drawViz();
 }
+function mediaDead(reason){
+  V._mediaFail=true;pause();
+  $('#stageBox').classList.remove('video');
+  $('#stageBadge').textContent='媒体不可用('+reason+') · 模拟播放';
+}
 function pause(){
-  S.playing=false;$('#playIco').innerHTML='<path d="M8 5.5v13l11-6.5z"/>';
-  clearInterval(S.timer);clearTimeout(S._stallT);AUD.pause();audioSessionOff();
+  S.playing=false;S._startPending=0;$('#playIco').innerHTML='<path d="M8 5.5v13l11-6.5z"/>';
+  clearInterval(S.timer);clearTimeout(S._stallT);clearTimeout(S._hangT);AUD.pause();audioSessionOff();
 }
 let lastSubIdx=-1;
 function syncUI(force){
