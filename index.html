@@ -979,9 +979,14 @@ function setCase(id){
   $('#dTitle').textContent=V.title;$('#dMeta').innerHTML=V.meta;
   $('#tmDur').textContent=fmt(DUR);
   if(V.media&&!V._mediaFail){
-    const s0=V._blobUrl||(V.srcs||[V.media])[V._srcIdx||0];
-    if(AUD.getAttribute('src')!==s0){AUD.src=s0;AUD.load();}
-    ensureBlob();
+    if(V._blobUrl){
+      if(AUD.getAttribute('src')!==V._blobUrl){AUD.src=V._blobUrl;AUD.load();}
+    }else if(navigator.standalone&&V.mediaKind==='video'){
+      AUD.removeAttribute('src');ensureBlob(); /* App 模式：只走下载→本地播放 */
+    }else{
+      const s0=(V.srcs||[V.media])[V._srcIdx||0];
+      if(AUD.getAttribute('src')!==s0){AUD.src=s0;AUD.load();}
+    }
   }else AUD.removeAttribute('src');
   $('#stageBox').classList.toggle('video',!!(V.media&&V.mediaKind==='video'&&!V._mediaFail));
   $('#stageBadge').textContent=V._mediaFail?'媒体不可用 · 模拟播放':V.badge;
@@ -1029,6 +1034,7 @@ AUD.addEventListener('ended',()=>pause());
    iOS 不允许此时自动续播，因此转为暂停并提示用户再点一次播放 */
 function nextSource(auto){
   if(!V||!V.media)return false;
+  if(V._blobUrl||V._blobBusy)return false; /* 本地数据路径接管后禁止任何切换 */
   V._srcIdx=(V._srcIdx||0)+1;
   const list=V.srcs||[V.media];
   if(V._srcIdx>=list.length)return false;
@@ -1044,6 +1050,9 @@ function nextSource(auto){
 }
 AUD.addEventListener('error',()=>{
   if(!(V&&V.media&&AUD.getAttribute('src')))return;
+  const s=AUD.currentSrc||AUD.getAttribute('src')||'';
+  if(s.startsWith('blob:')){AUD.load();return;} /* 本地数据不应报错，重挂重试 */
+  if(V._blobUrl||V._blobBusy)return; /* blob 路径接管中，忽略旧流残留错误 */
   if(nextSource(false))return;
   V._mediaFail=true;
   $('#stageBox').classList.remove('video');
@@ -1061,32 +1070,43 @@ AUD.addEventListener('timeupdate',()=>{if(S.playing&&mediaOn()){S.t=AUD.currentT
 AUD.addEventListener('loadedmetadata',()=>{if(Math.abs(AUD.currentTime-S.t)>0.5){try{AUD.currentTime=S.t;}catch(e){}}});
 /* 主屏幕 App（standalone）媒体加载器失效规避：fetch 整体下载 → Blob 本地播放。
    fetch 在 standalone 中正常，媒体流式通道则可能一直缓冲，故绕开之 */
-function ensureBlob(){
+async function ensureBlob(){
   if(!V||!V.media||V.mediaKind!=='video'||!navigator.standalone)return;
   if(V._blobUrl||V._blobErr||V._blobBusy)return;
-  V._blobBusy=true;
-  const url=(V.srcs||[V.media])[0],cur=V;
-  fetch(url,{cache:'default'}).then(async r=>{
-    if(!r.ok)throw 0;
-    const len=+r.headers.get('Content-Length')||6649589;
-    const reader=r.body.getReader();const chunks=[];let got=0;
-    for(;;){
-      const {done,value}=await reader.read();
-      if(done)break;
-      chunks.push(value);got+=value.length;
-      if(V===cur)$('#stageBadge').textContent='加载视频 '+Math.min(99,Math.round(got/len*100))+'%';
+  const cur=V;cur._blobBusy=true;
+  const url=(cur.srcs||[cur.media])[0];
+  try{
+    let buf=null;
+    /* 先查本地持久缓存：命中则秒开，不重复下载 */
+    try{const c=await caches.open('uptalk-media');const hit=await c.match(url);if(hit)buf=await hit.arrayBuffer();}catch(e){}
+    if(!buf){
+      const r=await fetch(url,{cache:'default'});
+      if(!r.ok)throw 0;
+      const len=+r.headers.get('Content-Length')||6649589;
+      const reader=r.body.getReader();const chunks=[];let got=0;
+      for(;;){
+        const {done,value}=await reader.read();
+        if(done)break;
+        chunks.push(value);got+=value.length;
+        if(V===cur)$('#stageBadge').textContent='加载视频 '+Math.min(99,Math.round(got/len*100))+'%';
+      }
+      buf=await new Blob(chunks,{type:'video/mp4'}).arrayBuffer();
+      try{const c=await caches.open('uptalk-media');await c.put(url,new Response(buf.slice(0),{headers:{'Content-Type':'video/mp4'}}));}catch(e){}
     }
-    cur._blobUrl=URL.createObjectURL(new Blob(chunks,{type:'video/mp4'}));
+    cur._blobUrl=URL.createObjectURL(new Blob([buf],{type:'video/mp4'}));
     cur._blobBusy=false;
     if(V===cur){
+      const t=S.t,wasPlaying=S.playing;
       AUD.src=cur._blobUrl;AUD.load();
+      try{AUD.currentTime=t;}catch(e){}
       $('#stageBadge').textContent=cur.badge;
-      if(S.playing){
-        try{AUD.currentTime=S.t;}catch(e){}
-        AUD.play().catch(()=>{pause();toast('视频已就绪，请再点一次播放',2800);});
-      }
+      if(wasPlaying)AUD.play().catch(()=>{pause();toast('视频已就绪，请再点一次播放',2800);});
+      else toast('视频已就绪，可以播放',1800);
     }
-  }).catch(()=>{cur._blobBusy=false;cur._blobErr=1;});
+  }catch(e){
+    cur._blobBusy=false;cur._blobErr=1;
+    if(V===cur)toast('视频下载失败，将尝试直接播放',2500);
+  }
 }
 
 /* iOS 静音键规避：用户手势内启动静音 WebAudio 循环，把 Safari 音频会话切到「播放」类别，
@@ -1165,6 +1185,12 @@ function seekFlash(t){
 }
 function playPause(){S.playing?pause():play();}
 function play(){
+  /* App 模式（standalone）视频只走本地数据：下载完成前不进入播放状态 */
+  if(mediaOn()&&V.mediaKind==='video'&&navigator.standalone&&!V._blobUrl){
+    ensureBlob();
+    toast('视频下载中，完成后请点播放',2200);
+    return;
+  }
   S.playing=true;$('#playIco').innerHTML='<path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/>';
   if(mediaOn()){
     audioSessionOn();
@@ -1178,11 +1204,10 @@ function play(){
     clearTimeout(S._stallT);
     const armStall=()=>{S._stallT=setTimeout(()=>{
       if(!(S.playing&&mediaOn())||AUD.currentTime>0.3)return;
-      if(V._blobBusy){armStall();return;}
+      if(V._blobUrl||V._blobBusy){armStall();return;} /* 本地数据路径不做任何切换 */
       const hasData=AUD.buffered&&AUD.buffered.length&&AUD.buffered.end(AUD.buffered.length-1)>0.5;
       if(hasData){$('#stageBadge').textContent='缓冲中…';armStall();}
-      else if(navigator.standalone&&!V._blobUrl&&!V._blobErr){ensureBlob();armStall();}
-      else if(!V._autoSw&&!V._blobUrl){V._autoSw=1;toast('线路无响应，已切换备用线路，请再点一次播放',3200);nextSource(true);}
+      else if(!V._autoSw){V._autoSw=1;toast('线路无响应，已切换备用线路，请再点一次播放',3200);nextSource(true);}
       else{$('#stageBadge').textContent='缓冲中…（网络较慢，请稍候）';armStall();}
     },9000);};
     armStall();
