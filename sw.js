@@ -4,26 +4,28 @@
 const CACHE = 'uptalk-media';
 const MEDIA = /classroom-web(-lite)?\.mp4$/;
 const bufMem = new Map(); /* 进程内热缓存，避免每个 range 请求重复解码 */
+const inflight = new Map(); /* url→Promise：并发请求共享同一次下载，不再各起一份 6.6MB */
 
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
 async function mediaBuffer(url) {
   if (bufMem.has(url)) return bufMem.get(url);
-  const cache = await caches.open(CACHE);
-  let res = await cache.match(url, { ignoreVary: true, ignoreSearch: true });
-  if (!res) {
+  if (inflight.has(url)) return inflight.get(url);
+  const p = (async () => {
+    const cache = await caches.open(CACHE);
+    const res = await cache.match(url, { ignoreVary: true, ignoreSearch: true });
+    if (res) { const buf = await res.arrayBuffer(); bufMem.set(url, buf); return buf; }
     const net = await fetch(url, { cache: 'default' });
     if (!net.ok) throw new Error('net ' + net.status);
     const buf = await net.arrayBuffer();
-    await cache.put(url, new Response(buf.slice(0), { headers: {
-      'Content-Type': 'video/mp4', 'Content-Length': String(buf.byteLength) } }));
-    bufMem.set(url, buf);
+    bufMem.set(url, buf); /* 先入内存再写盘：写盘配额失败不丢弃已下载数据 */
+    try { await cache.put(url, new Response(buf.slice(0), { headers: {
+      'Content-Type': 'video/mp4', 'Content-Length': String(buf.byteLength) } })); } catch (e) {}
     return buf;
-  }
-  const buf = await res.arrayBuffer();
-  bufMem.set(url, buf);
-  return buf;
+  })();
+  inflight.set(url, p);
+  try { return await p; } finally { inflight.delete(url); }
 }
 
 async function serveMedia(req) {
@@ -48,13 +50,19 @@ async function serveMedia(req) {
       'Content-Length': String(chunk.byteLength),
       'Accept-Ranges': 'bytes' } });
   } catch (e) {
-    return fetch(req); /* SW 层失败则透传网络 */
+    if (req.headers.get('range')) {
+      /* Range 请求绝不透传：网络流在 App 模式会挂死媒体进程且毫无征兆；
+         快速 503 让 <video> 立即报错，页面得以感知并换轨 */
+      return new Response(null, { status: 503, headers: { 'X-SW-Error': String(e && e.message || e) } });
+    }
+    return fetch(req); /* 整文件请求仍透传，保 Safari 标签页兜底 */
   }
 }
 
 self.addEventListener('fetch', e => {
   let u;
   try { u = new URL(e.request.url); } catch (err) { return; }
+  if (e.request.headers.get('X-SW-Bypass')) return; /* 页面自带下载器：放行直连，进度真实可见 */
   if (u.origin === self.location.origin && MEDIA.test(u.pathname)) {
     e.respondWith(serveMedia(e.request));
   }
