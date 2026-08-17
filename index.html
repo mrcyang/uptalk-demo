@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Uptalk">
+<meta name="apple-mobile-web-app-title" content="UpTalk">
 <meta name="theme-color" content="#F4F6F8">
 <link rel="apple-touch-icon" href="icon-180-v4.png">
 <style>
@@ -322,7 +322,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
     <section class="scr on" id="scr-home">
       <div class="hd">
         <div class="logo">uptalk<i>.</i></div>
-        <span class="demoTag">DEMO · v0.6</span>
+        <span class="demoTag">DEMO · v0.6.1</span>
         <button class="iconBtn" onclick="toast('通知中心（演示略）')" aria-label="通知"><svg viewBox="0 0 24 24" class="i"><path fill="none" stroke="#55616E" stroke-width="1.7" stroke-linecap="round" d="M6 10a6 6 0 1 1 12 0c0 4 1.6 5.4 1.6 5.4H4.4S6 14 6 10Zm4.5 8.6a1.8 1.8 0 0 0 3 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="body">
@@ -468,7 +468,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:700">关于这个 Demo</div>
-          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.6（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
+          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.6.1（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
         </div>
       </div>
     </section>
@@ -1028,7 +1028,7 @@ function openCase(id,t,pane){
 }
 
 /* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
-const DEMO_VER='v0.6';
+const DEMO_VER='v0.6.1';
 const AUD=document.getElementById('realMedia');
 const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
 const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
