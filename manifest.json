@@ -1,6 +1,6 @@
 {
-  "name": "Uptalk 移动端 Demo",
-  "short_name": "Uptalk",
+  "name": "UpTalk",
+  "short_name": "UpTalk",
   "start_url": "/uptalk-demo/",
   "scope": "/uptalk-demo/",
   "display": "standalone",
