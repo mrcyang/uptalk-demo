@@ -322,7 +322,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
     <section class="scr on" id="scr-home">
       <div class="hd">
         <div class="logo">uptalk<i>.</i></div>
-        <span class="demoTag">DEMO · v0.6.2</span>
+        <span class="demoTag">DEMO · v0.6.3</span>
         <button class="iconBtn" onclick="toast('通知中心（演示略）')" aria-label="通知"><svg viewBox="0 0 24 24" class="i"><path fill="none" stroke="#55616E" stroke-width="1.7" stroke-linecap="round" d="M6 10a6 6 0 1 1 12 0c0 4 1.6 5.4 1.6 5.4H4.4S6 14 6 10Zm4.5 8.6a1.8 1.8 0 0 0 3 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="body">
@@ -468,7 +468,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);out
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:700">关于这个 Demo</div>
-          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.6.2（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
+          <p class="note" style="margin-top:6px">Uptalk 移动端交互演示 v0.6.3（2026-08-17）。视频为模拟播放，字幕、APT 识别与统计为演示样例数据，AI 为脚本应答。用于验证产品预期效果，不代表最终视觉与真实识别精度。</p>
         </div>
       </div>
     </section>
@@ -1028,13 +1028,15 @@ function openCase(id,t,pane){
 }
 
 /* ================= 播放器（真实媒体 / 模拟两种模式） ================= */
-const DEMO_VER='v0.6.2';
+const DEMO_VER='v0.6.3';
 const AUD=document.getElementById('realMedia');
 const mediaOn=()=>!!(V&&V.media&&!V._mediaFail);
 const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 const isBlobSrc=()=>((AUD.currentSrc||AUD.getAttribute('src')||'').startsWith('blob:'));
 /* Service Worker：媒体本地化服务（Range 响应），页面加载即注册 */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+/* 通知 SW「该 URL 的字节已入缓存」——SW 只对登记过的 URL 出手，其余请求彻底隐身（浏览器原生播放不受影响） */
+const swNotifyCached=u=>{try{if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({t:'media-cached',url:new URL(u,location.href).href});}catch(e){}};
 function swControlled(waitMs){
   return new Promise(res=>{
     if(navigator.serviceWorker&&navigator.serviceWorker.controller)return res(true);
@@ -1100,7 +1102,7 @@ async function ensureMedia(){
   try{
     let buf=null;
     /* 先查本地持久缓存：命中则秒开，不重复下载 */
-    try{const c=await caches.open('uptalk-media');const hit=await c.match(url,{ignoreVary:true});if(hit)buf=await hit.arrayBuffer();}catch(e){}
+    try{const c=await caches.open('uptalk-media');const hit=await c.match(url,{ignoreVary:true});if(hit){buf=await hit.arrayBuffer();swNotifyCached(url);}}catch(e){}
     if(!buf){
       /* X-SW-Bypass：SW 放行本请求，下载走真实网络流，进度不再被 SW 整文件缓冲吞掉；
          20s 无字节进展则中止（_blobBusy 不会永久卡死，下次点击可重试） */
@@ -1119,7 +1121,7 @@ async function ensureMedia(){
         }
         buf=await new Blob(chunks,{type:'video/mp4'}).arrayBuffer();
       }finally{if(wd)clearInterval(wd);}
-      try{const c=await caches.open('uptalk-media');await c.put(url,new Response(buf.slice(0),{headers:{'Content-Type':'video/mp4','Content-Length':String(buf.byteLength)}}));}catch(e){}
+      try{const c=await caches.open('uptalk-media');await c.put(url,new Response(buf.slice(0),{headers:{'Content-Type':'video/mp4','Content-Length':String(buf.byteLength)}}));swNotifyCached(url);}catch(e){}
     }
     /* v0.6.2 确定性选择：不再与 SW 激活竞速（该竞速是一枚每次安装重掷的硬币——v0.6 与 v0.6.1 的差异即在此）。
        首选 blob：全程进程内、不依赖 SW 存活；SW 仅作缓存层与挂起换轨的备用通道（字节已入 Cache Storage） */
@@ -1162,6 +1164,7 @@ async function hangFlip(){
     return;
   }
   cur._localMode=to;
+  if(to==='sw')swNotifyCached(url); /* 确保 SW 已登记该 URL（SW 若被系统重启，登记即恢复） */
   AUD.src=to==='sw'?url:cur._blobUrl;
   try{AUD.load();}catch(e){}
   try{AUD.currentTime=S.t;}catch(e){}
