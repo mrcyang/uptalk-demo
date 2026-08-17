@@ -979,8 +979,9 @@ function setCase(id){
   $('#dTitle').textContent=V.title;$('#dMeta').innerHTML=V.meta;
   $('#tmDur').textContent=fmt(DUR);
   if(V.media&&!V._mediaFail){
-    const s0=(V.srcs||[V.media])[V._srcIdx||0];
+    const s0=V._blobUrl||(V.srcs||[V.media])[V._srcIdx||0];
     if(AUD.getAttribute('src')!==s0){AUD.src=s0;AUD.load();}
+    ensureBlob();
   }else AUD.removeAttribute('src');
   $('#stageBox').classList.toggle('video',!!(V.media&&V.mediaKind==='video'&&!V._mediaFail));
   $('#stageBadge').textContent=V._mediaFail?'媒体不可用 · 模拟播放':V.badge;
@@ -1058,6 +1059,36 @@ AUD.addEventListener('playing',()=>{if(mediaOn()){$('#stageBadge').textContent=V
 /* 用 timeupdate 直接驱动同步（比定时器更可靠），滚动异常不阻塞高亮 */
 AUD.addEventListener('timeupdate',()=>{if(S.playing&&mediaOn()){S.t=AUD.currentTime;try{syncUI();}catch(e){}}});
 AUD.addEventListener('loadedmetadata',()=>{if(Math.abs(AUD.currentTime-S.t)>0.5){try{AUD.currentTime=S.t;}catch(e){}}});
+/* 主屏幕 App（standalone）媒体加载器失效规避：fetch 整体下载 → Blob 本地播放。
+   fetch 在 standalone 中正常，媒体流式通道则可能一直缓冲，故绕开之 */
+function ensureBlob(){
+  if(!V||!V.media||V.mediaKind!=='video'||!navigator.standalone)return;
+  if(V._blobUrl||V._blobErr||V._blobBusy)return;
+  V._blobBusy=true;
+  const url=(V.srcs||[V.media])[0],cur=V;
+  fetch(url,{cache:'default'}).then(async r=>{
+    if(!r.ok)throw 0;
+    const len=+r.headers.get('Content-Length')||6649589;
+    const reader=r.body.getReader();const chunks=[];let got=0;
+    for(;;){
+      const {done,value}=await reader.read();
+      if(done)break;
+      chunks.push(value);got+=value.length;
+      if(V===cur)$('#stageBadge').textContent='加载视频 '+Math.min(99,Math.round(got/len*100))+'%';
+    }
+    cur._blobUrl=URL.createObjectURL(new Blob(chunks,{type:'video/mp4'}));
+    cur._blobBusy=false;
+    if(V===cur){
+      AUD.src=cur._blobUrl;AUD.load();
+      $('#stageBadge').textContent=cur.badge;
+      if(S.playing){
+        try{AUD.currentTime=S.t;}catch(e){}
+        AUD.play().catch(()=>{pause();toast('视频已就绪，请再点一次播放',2800);});
+      }
+    }
+  }).catch(()=>{cur._blobBusy=false;cur._blobErr=1;});
+}
+
 /* iOS 静音键规避：用户手势内启动静音 WebAudio 循环，把 Safari 音频会话切到「播放」类别，
    使 playsinline 媒体不再被侧边静音开关消音（unmute.js 同原理） */
 let sessAC=null,sessSrc=null;
@@ -1147,9 +1178,11 @@ function play(){
     clearTimeout(S._stallT);
     const armStall=()=>{S._stallT=setTimeout(()=>{
       if(!(S.playing&&mediaOn())||AUD.currentTime>0.3)return;
+      if(V._blobBusy){armStall();return;}
       const hasData=AUD.buffered&&AUD.buffered.length&&AUD.buffered.end(AUD.buffered.length-1)>0.5;
       if(hasData){$('#stageBadge').textContent='缓冲中…';armStall();}
-      else if(!V._autoSw){V._autoSw=1;toast('线路无响应，已切换备用线路，请再点一次播放',3200);nextSource(true);}
+      else if(navigator.standalone&&!V._blobUrl&&!V._blobErr){ensureBlob();armStall();}
+      else if(!V._autoSw&&!V._blobUrl){V._autoSw=1;toast('线路无响应，已切换备用线路，请再点一次播放',3200);nextSource(true);}
       else{$('#stageBadge').textContent='缓冲中…（网络较慢，请稍候）';armStall();}
     },9000);};
     armStall();
